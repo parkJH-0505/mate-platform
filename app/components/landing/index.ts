@@ -1,0 +1,8 @@
+export { HeroSection } from './HeroSection'
+export { ProblemInput } from './ProblemInput'
+export { QuickCategoryButtons } from './QuickCategoryButtons'
+export { TrustSection } from './TrustSection'
+export { HowItWorksSection } from './HowItWorksSection'
+export { CTASection } from './CTASection'
+export { LandingFooter } from './Footer'
+export { LandingHeader } from './LandingHeader'
