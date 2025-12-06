@@ -4,6 +4,7 @@ import React, { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useOnboardingStore } from '@/stores/onboardingStore'
+import { useAuth } from '@/hooks/useAuth'
 
 interface CurriculumContent {
   id: string
@@ -46,10 +47,12 @@ interface ProgressData {
 function CurriculumContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { isAuthenticated, isLoading: authLoading } = useAuth()
   const [curriculum, setCurriculum] = useState<Curriculum | null>(null)
   const [progress, setProgress] = useState<ProgressData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showSignupBanner, setShowSignupBanner] = useState(false)
 
   const { sessionId, setCurriculumId } = useOnboardingStore()
 
@@ -105,6 +108,11 @@ function CurriculumContent() {
               }
             }
           }
+
+          // Show signup banner for anonymous users after curriculum is loaded
+          if (!isAuthenticated && !authLoading && sessionId) {
+            setTimeout(() => setShowSignupBanner(true), 2000)
+          }
         }
       } catch (err) {
         console.error('Error fetching curriculum:', err)
@@ -115,7 +123,7 @@ function CurriculumContent() {
     }
 
     fetchData()
-  }, [searchParams, sessionId, router, setCurriculumId])
+  }, [searchParams, sessionId, router, setCurriculumId, isAuthenticated, authLoading])
 
   const handleContentClick = (contentId: string) => {
     router.push(`/content/${contentId}`)
@@ -165,14 +173,62 @@ function CurriculumContent() {
           >
             MATE
           </button>
-          <button
-            onClick={() => router.push('/login')}
-            className="text-sm text-white/60 hover:text-white transition-colors"
-          >
-            로그인
-          </button>
+          {isAuthenticated ? (
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="text-sm text-white/60 hover:text-white transition-colors"
+            >
+              대시보드
+            </button>
+          ) : (
+            <button
+              onClick={() => router.push('/login?redirect=/curriculum')}
+              className="px-4 py-2 rounded-lg bg-accent-purple/10 text-accent-purple text-sm font-medium hover:bg-accent-purple/20 transition-colors"
+            >
+              로그인
+            </button>
+          )}
         </div>
       </header>
+
+      {/* Signup Banner for Anonymous Users */}
+      {showSignupBanner && !isAuthenticated && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="fixed top-16 left-0 right-0 z-40 p-4"
+        >
+          <div className="max-w-4xl mx-auto">
+            <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-accent-purple/20 to-primary/20 border border-accent-purple/30 p-4">
+              <button
+                onClick={() => setShowSignupBanner(false)}
+                className="absolute top-2 right-2 p-1 rounded-full hover:bg-white/10 transition-colors"
+              >
+                <svg className="w-4 h-4 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-full bg-accent-purple/20 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-5 h-5 text-accent-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-white">학습 진행 상황을 저장하세요</p>
+                  <p className="text-xs text-white/50">로그인하면 언제든 이어서 학습할 수 있어요</p>
+                </div>
+                <button
+                  onClick={() => router.push('/login?redirect=/curriculum')}
+                  className="px-4 py-2 rounded-lg bg-accent-purple text-white text-sm font-medium hover:bg-accent-purple/90 transition-colors flex-shrink-0"
+                >
+                  로그인
+                </button>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {/* Main Content */}
       <main className="pt-20 pb-32 px-4">
