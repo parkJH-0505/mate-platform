@@ -3,13 +3,11 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { createClient } from '@/lib/supabase/client'
 import { useOnboardingStore } from '@/stores/onboardingStore'
 
 export default function OnboardingCompletePage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState<'google' | 'kakao' | null>(null)
-  const [error, setError] = useState<string | null>(null)
 
   const { name, sessionId } = useOnboardingStore()
 
@@ -22,25 +20,10 @@ export default function OnboardingCompletePage() {
 
   const handleSocialLogin = async (provider: 'google' | 'kakao') => {
     setIsLoading(provider)
-    setError(null)
-
-    try {
-      const supabase = createClient()
-
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback?redirect=/curriculum/generating&sessionId=${sessionId}`,
-        },
-      })
-
-      if (error) {
-        throw error
-      }
-    } catch (err: any) {
-      setError(err.message || '로그인 중 오류가 발생했습니다.')
-      setIsLoading(null)
-    }
+    // 프로토타입: 소셜 로그인 없이 바로 커리큘럼 생성으로 이동
+    setTimeout(() => {
+      router.push('/curriculum/generating')
+    }, 500)
   }
 
   const handleSkip = () => {
@@ -174,16 +157,6 @@ export default function OnboardingCompletePage() {
           </div>
 
           {/* Error Message */}
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mt-4 p-4 rounded-xl bg-red-500/10 border border-red-500/20"
-            >
-              <p className="text-sm text-red-400">{error}</p>
-            </motion.div>
-          )}
-
           {/* Skip */}
           <button
             onClick={handleSkip}
