@@ -61,19 +61,23 @@ export async function GET(
       content: {
         id: content.id,
         title: content.title,
-        creator: content.creator,
-        duration: content.duration,
-        type: content.content_type,
-        moduleId: content.module_id,
-        moduleTitle: content.module?.title,
-        weekNumber: content.module?.week_number,
-        curriculumId: content.module?.curriculum_id,
-        completed
+        creator: content.creator || 'MATE',
+        duration: content.duration || '10:00',
+        type: content.content_type || 'video',
+        description: content.description || null,
+        module: {
+          id: content.module_id,
+          title: content.module?.title || '',
+          weekNumber: content.module?.week_number || 1,
+          curriculumId: content.module?.curriculum_id
+        },
+        isCompleted: completed
       },
       nextContent: nextContent ? {
         id: nextContent.id,
         title: nextContent.title,
-        type: nextContent.content_type
+        creator: 'MATE',
+        duration: '10:00'
       } : null
     })
 
