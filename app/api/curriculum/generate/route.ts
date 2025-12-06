@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { openai } from '@/lib/openai'
+import { getOpenAI } from '@/lib/openai'
 import {
   CURRICULUM_SYSTEM_PROMPT,
   generateCurriculumPrompt,
@@ -26,6 +26,7 @@ export async function POST(request: Request) {
     const { data: { user } } = await supabase.auth.getUser()
 
     // OpenAI API 호출
+    const openai = getOpenAI()
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
