@@ -1,59 +1,188 @@
 'use client'
 
-import React, { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import React, { useState, useEffect } from 'react'
+import { useRouter, useParams } from 'next/navigation'
 import { motion } from 'framer-motion'
+import { useOnboardingStore } from '@/stores/onboardingStore'
 
-// Mock 콘텐츠 데이터
-const mockContent = {
-  id: 'c1',
-  title: 'MVP 출시 전 체크리스트 10가지',
-  description: 'MVP를 출시하기 전에 반드시 확인해야 할 10가지 핵심 사항들을 알려드립니다. 실제 창업 현장에서 자주 놓치는 부분들을 짚어드려요.',
-  creator: {
-    name: '김창업',
-    title: 'Series A 스타트업 대표',
-    avatar: '👨‍💼',
-    bio: '3번의 창업 경험, 2번의 엑싯. 현재는 Series A 스타트업 대표로 100명 규모의 팀을 이끌고 있습니다.'
-  },
-  duration: '12:34',
-  type: 'video',
-  publishedAt: '2024년 12월 1일',
-  views: 1234,
-  tags: ['MVP', '출시', '체크리스트', 'IT/소프트웨어'],
-  relatedContents: [
-    { id: 'c2', title: '첫 100명 유저 확보하는 법', creator: '박그로스', duration: '15:20', thumbnail: '🎬' },
-    { id: 'c3', title: 'IT 서비스 론칭 D-day 플레이북', creator: '이스타트', duration: '8:45', thumbnail: '📄' },
-    { id: 'c4', title: '유저 인터뷰 질문 템플릿', creator: '최PM', duration: '10:12', thumbnail: '🎬' }
-  ],
-  keyPoints: [
-    '기능보다 핵심 가치에 집중하기',
-    '출시 전 내부 테스트 최소 3회',
-    '피드백 수집 채널 미리 세팅',
-    '첫 1주일 모니터링 계획 수립',
-    '출시 후 빠른 이터레이션 준비'
-  ]
+interface ContentData {
+  id: string
+  title: string
+  creator: string
+  duration: string
+  type: string
+  description: string | null
+  module: {
+    id: string
+    title: string
+    weekNumber: number
+    curriculumId: string
+  }
+  isCompleted: boolean
+  nextContent: {
+    id: string
+    title: string
+    creator: string
+    duration: string
+  } | null
 }
 
 export default function ContentPage() {
   const router = useRouter()
+  const params = useParams()
+  const contentId = params.id as string
+
+  const { sessionId, curriculumId } = useOnboardingStore()
+
+  const [content, setContent] = useState<ContentData | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [isBookmarked, setIsBookmarked] = useState(false)
   const [activeTab, setActiveTab] = useState<'overview' | 'notes'>('overview')
+  const [isCompleting, setIsCompleting] = useState(false)
+  const [showCompletionAnimation, setShowCompletionAnimation] = useState(false)
+
+  useEffect(() => {
+    if (contentId && sessionId) {
+      fetchContent()
+    }
+  }, [contentId, sessionId])
+
+  const fetchContent = async () => {
+    try {
+      setIsLoading(true)
+      const response = await fetch(`/api/content/${contentId}?sessionId=${sessionId}`)
+      const data = await response.json()
+
+      if (data.success) {
+        setContent(data.content)
+      } else {
+        setError(data.error || 'Failed to fetch content')
+      }
+    } catch (err) {
+      setError('Failed to load content')
+      console.error('Error fetching content:', err)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleComplete = async () => {
+    if (!content || isCompleting) return
+
+    try {
+      setIsCompleting(true)
+      const response = await fetch('/api/progress/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contentId: content.id,
+          curriculumId: content.module.curriculumId,
+          sessionId
+        })
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        setContent(prev => prev ? { ...prev, isCompleted: true } : null)
+        setShowCompletionAnimation(true)
+
+        // Wait for animation then navigate to next content or curriculum
+        setTimeout(() => {
+          if (content.nextContent) {
+            router.push(`/content/${content.nextContent.id}`)
+          } else {
+            router.push('/curriculum')
+          }
+        }, 1500)
+      }
+    } catch (err) {
+      console.error('Error completing content:', err)
+    } finally {
+      setIsCompleting(false)
+    }
+  }
+
+  const handleNextContent = () => {
+    if (content?.nextContent) {
+      router.push(`/content/${content.nextContent.id}`)
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-2 border-accent-purple border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-white/60">콘텐츠 불러오는 중...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error || !content) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-white/60 mb-4">{error || '콘텐츠를 찾을 수 없습니다'}</p>
+          <button
+            onClick={() => router.push('/curriculum')}
+            className="px-4 py-2 rounded-lg bg-accent-purple text-white"
+          >
+            커리큘럼으로 돌아가기
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
+      {/* Completion Animation Overlay */}
+      {showCompletionAnimation && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="fixed inset-0 z-[100] bg-[#0a0a0a]/90 flex items-center justify-center"
+        >
+          <motion.div
+            initial={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+            className="text-center"
+          >
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.2, type: 'spring', stiffness: 300 }}
+              className="w-24 h-24 mx-auto mb-6 rounded-full bg-green-500/20 flex items-center justify-center"
+            >
+              <svg className="w-12 h-12 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+              </svg>
+            </motion.div>
+            <h2 className="text-2xl font-bold text-white mb-2">학습 완료!</h2>
+            <p className="text-white/60">
+              {content.nextContent ? '다음 콘텐츠로 이동합니다...' : '커리큘럼으로 돌아갑니다...'}
+            </p>
+          </motion.div>
+        </motion.div>
+      )}
+
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0a]/80 backdrop-blur-xl border-b border-white/[0.06]">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => router.back()}
+              onClick={() => router.push('/curriculum')}
               className="p-2 rounded-lg hover:bg-white/5 transition-colors"
             >
               <svg className="w-5 h-5 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
-            <span className="text-sm text-white/40">커리큘럼으로 돌아가기</span>
+            <span className="text-sm text-white/40">{content.module.weekNumber}주차 · {content.module.title}</span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -65,11 +194,6 @@ export default function ContentPage() {
             >
               <svg className="w-5 h-5" fill={isBookmarked ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-              </svg>
-            </button>
-            <button className="p-2 rounded-lg text-white/60 hover:bg-white/5 transition-colors">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
               </svg>
             </button>
           </div>
@@ -104,39 +228,36 @@ export default function ContentPage() {
             <div className="lg:flex-1">
               {/* Title & Meta */}
               <h1 className="text-2xl sm:text-3xl font-bold text-white mb-4">
-                {mockContent.title}
+                {content.title}
               </h1>
 
               <div className="flex flex-wrap items-center gap-4 mb-6 text-sm text-white/50">
-                <span>{mockContent.publishedAt}</span>
+                <span>{content.creator}</span>
                 <span>•</span>
-                <span>{mockContent.views.toLocaleString()}회 시청</span>
+                <span>{content.duration}</span>
                 <span>•</span>
-                <span>{mockContent.duration}</span>
+                <span className="capitalize">{content.type}</span>
               </div>
 
-              {/* Tags */}
-              <div className="flex flex-wrap gap-2 mb-8">
-                {mockContent.tags.map((tag, index) => (
-                  <span
-                    key={index}
-                    className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-white/60"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
+              {/* Completion Status */}
+              {content.isCompleted && (
+                <div className="flex items-center gap-2 mb-6 px-4 py-2 rounded-lg bg-green-500/10 text-green-400 w-fit">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-sm font-medium">학습 완료</span>
+                </div>
+              )}
 
               {/* Creator Info */}
               <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] mb-8">
                 <div className="flex items-start gap-4">
                   <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center text-2xl">
-                    {mockContent.creator.avatar}
+                    👨‍💼
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-semibold text-white mb-0.5">{mockContent.creator.name}</h3>
-                    <p className="text-sm text-accent-purple mb-2">{mockContent.creator.title}</p>
-                    <p className="text-sm text-white/50">{mockContent.creator.bio}</p>
+                    <h3 className="font-semibold text-white mb-0.5">{content.creator}</h3>
+                    <p className="text-sm text-accent-purple mb-2">콘텐츠 제작자</p>
                   </div>
                 </div>
               </div>
@@ -170,20 +291,8 @@ export default function ContentPage() {
                 <div>
                   <h4 className="font-semibold text-white mb-3">콘텐츠 소개</h4>
                   <p className="text-white/60 leading-relaxed mb-6">
-                    {mockContent.description}
+                    {content.description || `${content.title}에 대해 학습합니다. 실제 창업 현장에서 바로 적용할 수 있는 실용적인 내용을 담고 있습니다.`}
                   </p>
-
-                  <h4 className="font-semibold text-white mb-3">핵심 포인트</h4>
-                  <ul className="space-y-2">
-                    {mockContent.keyPoints.map((point, index) => (
-                      <li key={index} className="flex items-start gap-3 text-white/60">
-                        <span className="w-6 h-6 rounded-full bg-accent-purple/10 flex items-center justify-center text-xs text-accent-purple flex-shrink-0 mt-0.5">
-                          {index + 1}
-                        </span>
-                        <span>{point}</span>
-                      </li>
-                    ))}
-                  </ul>
                 </div>
               ) : (
                 <div>
@@ -200,46 +309,69 @@ export default function ContentPage() {
                   </div>
                 </div>
               )}
+
+              {/* Complete Button */}
+              {!content.isCompleted && (
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleComplete}
+                  disabled={isCompleting}
+                  className="w-full mt-8 py-4 rounded-xl bg-gradient-to-r from-accent-purple to-primary text-white font-semibold text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isCompleting ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      처리 중...
+                    </span>
+                  ) : (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      학습 완료하기
+                    </span>
+                  )}
+                </motion.button>
+              )}
             </div>
 
             {/* Sidebar */}
             <aside className="lg:w-80 mt-10 lg:mt-0">
               {/* Next in Curriculum */}
-              <div className="p-4 rounded-2xl bg-accent-purple/5 border border-accent-purple/20 mb-6">
-                <div className="flex items-center gap-2 text-accent-purple text-sm font-medium mb-3">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-                  </svg>
-                  <span>다음 콘텐츠</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-lg bg-white/5 flex items-center justify-center text-xl">
-                    🎬
+              {content.nextContent && (
+                <div
+                  onClick={handleNextContent}
+                  className="p-4 rounded-2xl bg-accent-purple/5 border border-accent-purple/20 mb-6 cursor-pointer hover:bg-accent-purple/10 transition-colors"
+                >
+                  <div className="flex items-center gap-2 text-accent-purple text-sm font-medium mb-3">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                    </svg>
+                    <span>다음 콘텐츠</span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-white truncate">첫 100명 유저 확보하는 법</p>
-                    <p className="text-xs text-white/40">박그로스 · 15:20</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Related Contents */}
-              <h4 className="font-semibold text-white mb-4">관련 콘텐츠</h4>
-              <div className="space-y-3">
-                {mockContent.relatedContents.map((content) => (
-                  <div
-                    key={content.id}
-                    className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] transition-colors cursor-pointer"
-                  >
-                    <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-lg">
-                      {content.thumbnail}
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-lg bg-white/5 flex items-center justify-center text-xl">
+                      🎬
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-white truncate">{content.title}</p>
-                      <p className="text-xs text-white/40">{content.creator} · {content.duration}</p>
+                      <p className="text-sm font-medium text-white truncate">{content.nextContent.title}</p>
+                      <p className="text-xs text-white/40">{content.nextContent.creator} · {content.nextContent.duration}</p>
                     </div>
                   </div>
-                ))}
+                </div>
+              )}
+
+              {/* Module Info */}
+              <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06]">
+                <h4 className="font-semibold text-white mb-3">{content.module.weekNumber}주차</h4>
+                <p className="text-sm text-white/60">{content.module.title}</p>
+                <button
+                  onClick={() => router.push('/curriculum')}
+                  className="mt-4 w-full py-2 rounded-lg bg-white/5 text-sm text-white/60 hover:bg-white/10 transition-colors"
+                >
+                  커리큘럼 보기
+                </button>
               </div>
             </aside>
           </div>
@@ -248,15 +380,31 @@ export default function ContentPage() {
 
       {/* Bottom Bar (Mobile) */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-[#0a0a0a]/90 backdrop-blur-xl border-t border-white/[0.06] lg:hidden">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex-1">
-            <p className="text-xs text-white/40">다음 콘텐츠</p>
-            <p className="text-sm text-white truncate">첫 100명 유저 확보하는 법</p>
-          </div>
-          <button className="px-6 py-3 rounded-xl bg-gradient-to-r from-accent-purple to-primary text-white font-medium">
-            다음
+        {content.isCompleted ? (
+          content.nextContent ? (
+            <button
+              onClick={handleNextContent}
+              className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-accent-purple to-primary text-white font-medium"
+            >
+              다음 콘텐츠
+            </button>
+          ) : (
+            <button
+              onClick={() => router.push('/curriculum')}
+              className="w-full px-6 py-3 rounded-xl bg-white/10 text-white font-medium"
+            >
+              커리큘럼으로 돌아가기
+            </button>
+          )
+        ) : (
+          <button
+            onClick={handleComplete}
+            disabled={isCompleting}
+            className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-accent-purple to-primary text-white font-medium disabled:opacity-50"
+          >
+            {isCompleting ? '처리 중...' : '✓ 학습 완료하기'}
           </button>
-        </div>
+        )}
       </div>
     </div>
   )

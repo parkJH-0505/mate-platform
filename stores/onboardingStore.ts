@@ -20,6 +20,7 @@ interface OnboardingState {
   // 메타 상태
   currentStep: number
   sessionId: string | null
+  curriculumId: string | null
   isCompleted: boolean
 
   // 액션
@@ -31,6 +32,7 @@ interface OnboardingState {
   setName: (name: string) => void
   setCurrentStep: (step: number) => void
   setSessionId: (id: string) => void
+  setCurriculumId: (id: string) => void
   setCompleted: (completed: boolean) => void
   reset: () => void
 
@@ -47,6 +49,7 @@ const initialState = {
   name: '',
   currentStep: 0,
   sessionId: null,
+  curriculumId: null,
   isCompleted: false,
 }
 
@@ -77,6 +80,8 @@ export const useOnboardingStore = create<OnboardingState>()(
       setCurrentStep: (step) => set({ currentStep: step }),
 
       setSessionId: (id) => set({ sessionId: id }),
+
+      setCurriculumId: (id) => set({ curriculumId: id }),
 
       setCompleted: (completed) => set({ isCompleted: completed }),
 
@@ -123,6 +128,7 @@ export const useOnboardingStore = create<OnboardingState>()(
         name: state.name,
         currentStep: state.currentStep,
         sessionId: state.sessionId,
+        curriculumId: state.curriculumId,
         isCompleted: state.isCompleted,
       }),
     }

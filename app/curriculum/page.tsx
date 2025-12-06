@@ -36,18 +36,25 @@ interface Curriculum {
   modules: CurriculumModule[]
 }
 
+interface ProgressData {
+  totalContents: number
+  completedContents: number
+  progressPercent: number
+  completedIds: string[]
+}
+
 function CurriculumContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [showPaywall, setShowPaywall] = useState(false)
   const [curriculum, setCurriculum] = useState<Curriculum | null>(null)
+  const [progress, setProgress] = useState<ProgressData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const { sessionId } = useOnboardingStore()
+  const { sessionId, setCurriculumId } = useOnboardingStore()
 
   useEffect(() => {
-    const fetchCurriculum = async () => {
+    const fetchData = async () => {
       try {
         const curriculumId = searchParams.get('id')
 
@@ -70,6 +77,9 @@ function CurriculumContent() {
         const data = await response.json()
 
         if (data.success && data.curriculum) {
+          // Store curriculumId
+          setCurriculumId(data.curriculum.id)
+
           // 첫 번째 모듈은 current, 나머지는 locked
           const modulesWithStatus = data.curriculum.modules.map(
             (module: CurriculumModule, index: number) => ({
@@ -82,6 +92,19 @@ function CurriculumContent() {
             ...data.curriculum,
             modules: modulesWithStatus
           })
+
+          // Fetch progress
+          if (sessionId) {
+            const progressResponse = await fetch(
+              `/api/progress?curriculumId=${data.curriculum.id}&sessionId=${sessionId}`
+            )
+            if (progressResponse.ok) {
+              const progressData = await progressResponse.json()
+              if (progressData.success) {
+                setProgress(progressData.progress)
+              }
+            }
+          }
         }
       } catch (err) {
         console.error('Error fetching curriculum:', err)
@@ -91,15 +114,15 @@ function CurriculumContent() {
       }
     }
 
-    fetchCurriculum()
-  }, [searchParams, sessionId, router])
+    fetchData()
+  }, [searchParams, sessionId, router, setCurriculumId])
 
-  const handleStartLearning = () => {
-    setShowPaywall(true)
+  const handleContentClick = (contentId: string) => {
+    router.push(`/content/${contentId}`)
   }
 
-  const handleSubscribe = () => {
-    router.push('/subscribe')
+  const isContentCompleted = (contentId: string) => {
+    return progress?.completedIds.includes(contentId) ?? false
   }
 
   if (loading) {
@@ -192,101 +215,163 @@ function CurriculumContent() {
                 </span>
               </div>
 
-              <p className="text-white/50 mb-8">
+              <p className="text-white/50 mb-6">
                 {curriculum.durationWeeks}주 과정 · {curriculum.modules.reduce((acc, m) => acc + m.contents.length, 0)}개 콘텐츠 · AI 추천
               </p>
 
-              <button
-                onClick={handleStartLearning}
-                className="
-                  px-8 py-4 rounded-xl
-                  bg-gradient-to-r from-accent-purple to-primary
-                  text-white font-semibold text-lg
-                  transition-all duration-300
-                  hover:shadow-[0_0_30px_rgba(147,97,253,0.4)]
-                  hover:scale-[1.02]
-                  active:scale-[0.98]
-                "
-              >
-                학습 시작하기
-              </button>
+              {/* Progress Bar */}
+              {progress && (
+                <div className="mb-6">
+                  <div className="flex items-center justify-between text-sm mb-2">
+                    <span className="text-white/60">학습 진행률</span>
+                    <span className="text-accent-purple font-medium">
+                      {progress.completedContents}/{progress.totalContents} 완료 ({progress.progressPercent}%)
+                    </span>
+                  </div>
+                  <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${progress.progressPercent}%` }}
+                      transition={{ duration: 0.8, ease: 'easeOut' }}
+                      className="h-full bg-gradient-to-r from-accent-purple to-primary rounded-full"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Find first incomplete content for CTA */}
+              {(() => {
+                const firstIncomplete = curriculum.modules
+                  .flatMap(m => m.contents)
+                  .find(c => !isContentCompleted(c.id))
+
+                if (firstIncomplete) {
+                  return (
+                    <button
+                      onClick={() => handleContentClick(firstIncomplete.id)}
+                      className="
+                        px-8 py-4 rounded-xl
+                        bg-gradient-to-r from-accent-purple to-primary
+                        text-white font-semibold text-lg
+                        transition-all duration-300
+                        hover:shadow-[0_0_30px_rgba(147,97,253,0.4)]
+                        hover:scale-[1.02]
+                        active:scale-[0.98]
+                      "
+                    >
+                      {progress && progress.completedContents > 0 ? '학습 계속하기' : '학습 시작하기'}
+                    </button>
+                  )
+                } else {
+                  return (
+                    <div className="px-8 py-4 rounded-xl bg-green-500/20 border border-green-500/30 text-green-400 font-semibold text-lg text-center">
+                      🎉 모든 학습을 완료했습니다!
+                    </div>
+                  )
+                }
+              })()}
             </div>
           </motion.div>
 
           {/* Curriculum Modules */}
           <div className="space-y-6">
-            <h2 className="text-xl font-semibold text-white mb-6">커리큘럼 미리보기</h2>
+            <h2 className="text-xl font-semibold text-white mb-6">커리큘럼</h2>
 
-            {curriculum.modules.map((module, index) => (
-              <motion.div
-                key={module.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                className={`
-                  rounded-2xl border overflow-hidden
-                  ${module.status === 'current'
-                    ? 'bg-white/[0.03] border-accent-purple/30'
-                    : 'bg-white/[0.01] border-white/[0.06] opacity-60'
-                  }
-                `}
-              >
-                {/* Module Header */}
-                <div className="p-6 border-b border-white/[0.06]">
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-3">
-                      <span className={`
-                        px-3 py-1 rounded-full text-xs font-medium
-                        ${module.status === 'current'
-                          ? 'bg-accent-purple/20 text-accent-purple'
-                          : 'bg-white/5 text-white/40'
-                        }
-                      `}>
-                        {module.week}주차
+            {curriculum.modules.map((module, index) => {
+              const moduleCompleted = module.contents.every(c => isContentCompleted(c.id))
+              const moduleProgress = module.contents.filter(c => isContentCompleted(c.id)).length
+
+              return (
+                <motion.div
+                  key={module.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                  className={`
+                    rounded-2xl border overflow-hidden
+                    ${moduleCompleted
+                      ? 'bg-green-500/5 border-green-500/20'
+                      : module.status === 'current'
+                        ? 'bg-white/[0.03] border-accent-purple/30'
+                        : 'bg-white/[0.01] border-white/[0.06]'
+                    }
+                  `}
+                >
+                  {/* Module Header */}
+                  <div className="p-6 border-b border-white/[0.06]">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-3">
+                        <span className={`
+                          px-3 py-1 rounded-full text-xs font-medium
+                          ${moduleCompleted
+                            ? 'bg-green-500/20 text-green-400'
+                            : module.status === 'current'
+                              ? 'bg-accent-purple/20 text-accent-purple'
+                              : 'bg-white/5 text-white/40'
+                          }
+                        `}>
+                          {module.week}주차
+                        </span>
+                        {moduleCompleted && (
+                          <svg className="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
+                      <span className="text-xs text-white/30">
+                        {moduleProgress}/{module.contents.length} 완료
                       </span>
-                      {module.status === 'locked' && (
-                        <svg className="w-4 h-4 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                        </svg>
-                      )}
                     </div>
-                    <span className="text-xs text-white/30">
-                      {module.contents.length}개 콘텐츠
-                    </span>
+                    <h3 className="text-lg font-semibold text-white mb-1">{module.title}</h3>
+                    <p className="text-sm text-white/50">{module.description}</p>
                   </div>
-                  <h3 className="text-lg font-semibold text-white mb-1">{module.title}</h3>
-                  <p className="text-sm text-white/50">{module.description}</p>
-                </div>
 
-                {/* Module Contents */}
-                <div className="p-4 space-y-2">
-                  {module.contents.map((content) => (
-                    <div
-                      key={content.id}
-                      className="flex items-center gap-4 p-3 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] transition-colors cursor-pointer"
-                      onClick={() => module.status === 'current' && setShowPaywall(true)}
-                    >
-                      <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-xl">
-                        {content.thumbnail}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-white truncate">{content.title}</p>
-                        <p className="text-xs text-white/40">{content.creator} · {content.duration}</p>
-                      </div>
-                      {module.status === 'locked' ? (
-                        <svg className="w-4 h-4 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                        </svg>
-                      ) : (
-                        <svg className="w-5 h-5 text-accent-purple" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-            ))}
+                  {/* Module Contents */}
+                  <div className="p-4 space-y-2">
+                    {module.contents.map((content) => {
+                      const completed = isContentCompleted(content.id)
+
+                      return (
+                        <div
+                          key={content.id}
+                          className={`
+                            flex items-center gap-4 p-3 rounded-xl transition-colors cursor-pointer
+                            ${completed
+                              ? 'bg-green-500/5 hover:bg-green-500/10'
+                              : 'bg-white/[0.02] hover:bg-white/[0.04]'
+                            }
+                          `}
+                          onClick={() => handleContentClick(content.id)}
+                        >
+                          {/* Completion Indicator */}
+                          <div className={`
+                            w-10 h-10 rounded-lg flex items-center justify-center text-xl
+                            ${completed ? 'bg-green-500/20' : 'bg-white/5'}
+                          `}>
+                            {completed ? (
+                              <svg className="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                            ) : (
+                              content.thumbnail
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-sm font-medium truncate ${completed ? 'text-white/60' : 'text-white'}`}>
+                              {content.title}
+                            </p>
+                            <p className="text-xs text-white/40">{content.creator} · {content.duration}</p>
+                          </div>
+                          <svg className="w-5 h-5 text-accent-purple" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </motion.div>
+              )
+            })}
           </div>
 
           {/* Why This Curriculum */}
@@ -326,108 +411,37 @@ function CurriculumContent() {
         </div>
       </main>
 
-      {/* Paywall Modal */}
-      {showPaywall && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="relative w-full max-w-md p-8 rounded-3xl bg-[#121212] border border-white/10"
-          >
-            {/* Close Button */}
-            <button
-              onClick={() => setShowPaywall(false)}
-              className="absolute top-4 right-4 p-2 rounded-lg hover:bg-white/5 transition-colors"
-            >
-              <svg className="w-5 h-5 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-
-            {/* Content */}
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-accent-purple/20 to-primary/20 flex items-center justify-center">
-                <svg className="w-8 h-8 text-accent-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-              </div>
-
-              <h2 className="text-2xl font-bold text-white mb-2">
-                콘텐츠 잠금 해제
-              </h2>
-              <p className="text-white/50 mb-8">
-                구독을 시작하면 모든 콘텐츠를<br />무제한으로 학습할 수 있습니다.
-              </p>
-
-              {/* Price */}
-              <div className="mb-8">
-                <div className="text-4xl font-bold text-white mb-1">
-                  월 17,000원
-                </div>
-                <p className="text-sm text-white/40">
-                  커피 3잔 가격으로 무제한 학습
-                </p>
-              </div>
-
-              {/* Features */}
-              <div className="space-y-3 text-left mb-8">
-                <div className="flex items-center gap-3 text-sm text-white/70">
-                  <svg className="w-5 h-5 text-accent-purple" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <span>500+ 큐레이션된 콘텐츠 무제한</span>
-                </div>
-                <div className="flex items-center gap-3 text-sm text-white/70">
-                  <svg className="w-5 h-5 text-accent-purple" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <span>AI 맞춤 커리큘럼 지속 업데이트</span>
-                </div>
-                <div className="flex items-center gap-3 text-sm text-white/70">
-                  <svg className="w-5 h-5 text-accent-purple" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <span>언제든 해지 가능</span>
-                </div>
-              </div>
-
-              {/* CTA */}
-              <button
-                onClick={handleSubscribe}
-                className="
-                  w-full py-4 rounded-xl
-                  bg-gradient-to-r from-accent-purple to-primary
-                  text-white font-semibold text-lg
-                  transition-all duration-300
-                  hover:shadow-[0_0_30px_rgba(147,97,253,0.4)]
-                "
-              >
-                구독 시작하기
-              </button>
-
-              <p className="mt-4 text-xs text-white/30">
-                7일 무료 체험 후 자동 결제
-              </p>
-            </div>
-          </motion.div>
-        </div>
-      )}
-
       {/* Floating CTA */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a] to-transparent">
         <div className="max-w-4xl mx-auto">
-          <button
-            onClick={handleStartLearning}
-            className="
-              w-full py-4 rounded-xl
-              bg-gradient-to-r from-accent-purple to-primary
-              text-white font-semibold text-lg
-              transition-all duration-300
-              hover:shadow-[0_0_30px_rgba(147,97,253,0.4)]
-            "
-          >
-            지금 학습 시작하기
-          </button>
+          {(() => {
+            const firstIncomplete = curriculum.modules
+              .flatMap(m => m.contents)
+              .find(c => !isContentCompleted(c.id))
+
+            if (firstIncomplete) {
+              return (
+                <button
+                  onClick={() => handleContentClick(firstIncomplete.id)}
+                  className="
+                    w-full py-4 rounded-xl
+                    bg-gradient-to-r from-accent-purple to-primary
+                    text-white font-semibold text-lg
+                    transition-all duration-300
+                    hover:shadow-[0_0_30px_rgba(147,97,253,0.4)]
+                  "
+                >
+                  {progress && progress.completedContents > 0 ? '학습 계속하기' : '학습 시작하기'}
+                </button>
+              )
+            } else {
+              return (
+                <div className="w-full py-4 rounded-xl bg-green-500/20 border border-green-500/30 text-green-400 font-semibold text-lg text-center">
+                  🎉 모든 학습 완료!
+                </div>
+              )
+            }
+          })()}
         </div>
       </div>
     </div>
