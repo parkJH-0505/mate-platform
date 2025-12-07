@@ -163,6 +163,16 @@ export default function OnboardingPage() {
   const [isInitializing, setIsInitializing] = useState(true)
   const [generatingStep, setGeneratingStep] = useState(0)
 
+  // 생성 단계별 메시지 (메모이제이션으로 무한 루프 방지)
+  // 모든 hooks는 조건부 return문 전에 선언되어야 함
+  const generatingSteps = useMemo(() => [
+    { message: `${name}님의 상황을 분석하고 있어요...`, detail: `${INDUSTRY_LABELS[industry] || industry} 산업 트렌드 확인 중` },
+    { message: `${STAGE_LABELS[stage] || stage} 단계에 맞는 콘텐츠를 찾고 있어요...`, detail: '검증된 성공 패턴 매칭 중' },
+    { message: `${concerns.map(c => CONCERN_LABELS[c] || c).join(', ')} 해결 콘텐츠를 선별하고 있어요...`, detail: '87개 콘텐츠 중 최적 12개 선정' },
+    { message: `${name}님만의 로드맵을 구성하고 있어요...`, detail: '3주 실행 플랜 생성 중' },
+    { message: `${name}님의 로드맵이 완성되었습니다!`, detail: '' },
+  ], [name, industry, stage, concerns])
+
   // 온보딩 데이터가 변경될 때마다 localStorage에 백업
   useEffect(() => {
     const data = getOnboardingData()
@@ -218,6 +228,16 @@ export default function OnboardingPage() {
       setName(user.user_metadata.full_name)
     }
   }, [isAuthenticated, user, name, setName])
+
+  // 생성 단계 자동 진행
+  useEffect(() => {
+    if (isGenerating && generatingStep < generatingSteps.length - 1) {
+      const timer = setTimeout(() => {
+        setGeneratingStep(prev => prev + 1)
+      }, 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [isGenerating, generatingStep, generatingSteps])
 
   const step = STEPS[currentStep]
   const progress = ((currentStep + 1) / STEPS.length) * 100
@@ -436,25 +456,6 @@ export default function OnboardingPage() {
       </div>
     )
   }
-
-  // 생성 단계별 메시지 (메모이제이션으로 무한 루프 방지)
-  const generatingSteps = useMemo(() => [
-    { message: `${name}님의 상황을 분석하고 있어요...`, detail: `${INDUSTRY_LABELS[industry] || industry} 산업 트렌드 확인 중` },
-    { message: `${STAGE_LABELS[stage] || stage} 단계에 맞는 콘텐츠를 찾고 있어요...`, detail: '검증된 성공 패턴 매칭 중' },
-    { message: `${concerns.map(c => CONCERN_LABELS[c] || c).join(', ')} 해결 콘텐츠를 선별하고 있어요...`, detail: '87개 콘텐츠 중 최적 12개 선정' },
-    { message: `${name}님만의 로드맵을 구성하고 있어요...`, detail: '3주 실행 플랜 생성 중' },
-    { message: `${name}님의 로드맵이 완성되었습니다!`, detail: '' },
-  ], [name, industry, stage, concerns])
-
-  // 생성 단계 자동 진행
-  useEffect(() => {
-    if (isGenerating && generatingStep < generatingSteps.length - 1) {
-      const timer = setTimeout(() => {
-        setGeneratingStep(prev => prev + 1)
-      }, 2000)
-      return () => clearTimeout(timer)
-    }
-  }, [isGenerating, generatingStep, generatingSteps])
 
   if (isGenerating) {
     const currentGeneratingStep = generatingSteps[generatingStep]
