@@ -335,7 +335,7 @@ export default function DashboardPage() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-accent-purple/20 via-primary/10 to-transparent border border-accent-purple/20 p-6"
+        className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-accent-purple/20 via-primary/10 to-transparent border-2 border-accent-purple/40 p-6 backdrop-blur-xl shadow-[0_8px_32px_0_rgba(147,97,253,0.12)]"
       >
         <div className="absolute top-0 right-0 w-32 h-32 bg-accent-purple/20 rounded-full blur-[60px]" />
 
@@ -451,7 +451,7 @@ export default function DashboardPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-6"
+          className="rounded-2xl bg-white/[0.04] border border-white/[0.1] p-6 backdrop-blur-sm shadow-[0_8px_32px_0_rgba(0,0,0,0.2)]"
         >
           <div className="flex items-start justify-between mb-4">
             <div>
@@ -564,7 +564,7 @@ export default function DashboardPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
-          className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-6"
+          className="rounded-2xl bg-white/[0.04] border border-white/[0.1] p-6 backdrop-blur-sm shadow-[0_8px_32px_0_rgba(0,0,0,0.2)]"
         >
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-white flex items-center gap-2">
@@ -737,19 +737,19 @@ export default function DashboardPage() {
         transition={{ delay: 0.2 }}
         className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4"
       >
-        <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-4 sm:p-5 flex sm:flex-col items-center sm:items-center justify-between sm:justify-center gap-2 sm:gap-0 sm:text-center">
+        <div className="rounded-xl bg-white/[0.04] border border-white/[0.15] p-4 sm:p-5 flex sm:flex-col items-center sm:items-center justify-between sm:justify-center gap-2 sm:gap-0 sm:text-center backdrop-blur-sm">
           <p className="text-xs text-white/50 sm:order-2 sm:mt-1">완료한 콘텐츠</p>
           <p className="text-2xl font-bold text-white sm:order-1">
             {dashboard?.stats?.totalContentsCompleted || 0}
           </p>
         </div>
-        <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-4 sm:p-5 flex sm:flex-col items-center sm:items-center justify-between sm:justify-center gap-2 sm:gap-0 sm:text-center">
+        <div className="rounded-xl bg-white/[0.04] border border-white/[0.15] p-4 sm:p-5 flex sm:flex-col items-center sm:items-center justify-between sm:justify-center gap-2 sm:gap-0 sm:text-center backdrop-blur-sm">
           <p className="text-xs text-white/50 sm:order-2 sm:mt-1">생성한 커리큘럼</p>
           <p className="text-2xl font-bold text-white sm:order-1">
             {dashboard?.stats?.totalCurriculums || 0}
           </p>
         </div>
-        <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-4 sm:p-5 flex sm:flex-col items-center sm:items-center justify-between sm:justify-center gap-2 sm:gap-0 sm:text-center">
+        <div className="rounded-xl bg-white/[0.04] border border-white/[0.15] p-4 sm:p-5 flex sm:flex-col items-center sm:items-center justify-between sm:justify-center gap-2 sm:gap-0 sm:text-center backdrop-blur-sm">
           <p className="text-xs text-white/50 sm:order-2 sm:mt-1">총 학습 시간</p>
           <p className="text-2xl font-bold text-white sm:order-1">
             {formatTime(dashboard?.stats?.totalLearningMinutes || 0)}
@@ -763,7 +763,7 @@ export default function DashboardPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-6"
+          className="rounded-2xl bg-white/[0.04] border-2 border-white/[0.15] p-6 backdrop-blur-sm shadow-[0_8px_32px_0_rgba(0,0,0,0.2)]"
         >
           <h3 className="text-lg font-semibold text-white mb-4">최근 활동</h3>
           <div className="space-y-3">
@@ -794,7 +794,7 @@ export default function DashboardPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
-        className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-6"
+        className="rounded-2xl bg-white/[0.04] border border-white/[0.1] p-6 backdrop-blur-sm shadow-[0_8px_32px_0_rgba(0,0,0,0.2)]"
       >
         <h3 className="text-lg font-semibold text-white mb-4">빠른 메뉴</h3>
         <div className="grid grid-cols-2 gap-3">
