@@ -1,124 +1,264 @@
 'use client'
 
-import React, { useState } from 'react'
-import { useChat } from '@/app/hooks/useChat'
-import { ChatContainer } from '@/components/ai'
-import { generalQuestions } from '@/app/data/chatData'
+import React, { useState, useEffect, useCallback } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { useOnboardingStore } from '@/stores/onboardingStore'
+import { useAuth } from '@/hooks/useAuth'
+import { ChatWindow, ChatSidebar } from '../components/chat'
+import { BottomNavigation } from '../components/BottomNavigation'
+
+interface ChatSession {
+  id: string
+  title: string
+  updated_at: string
+  lastMessage?: {
+    content: string
+    role: string
+  } | null
+}
 
 export default function AIPage() {
-  const [hasStarted, setHasStarted] = useState(false)
+  const { user } = useAuth()
+  const { sessionId: userSessionId } = useOnboardingStore()
 
-  const {
-    messages,
-    isLoading,
-    streamingMessageId,
-    suggestedQuestions,
-    sendMessage
-  } = useChat({
-    persistKey: 'mate-ai-chat'
-  })
+  const [sessions, setSessions] = useState<ChatSession[]>([])
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
+  const [isLoadingSessions, setIsLoadingSessions] = useState(true)
+  const [showSidebar, setShowSidebar] = useState(false)
 
-  // 대화 시작 여부 (환영 메시지 외에 추가 메시지가 있는지)
-  const chatStarted = hasStarted || messages.length > 1
+  // 세션 목록 로드
+  const loadSessions = useCallback(async () => {
+    try {
+      setIsLoadingSessions(true)
+      const params = new URLSearchParams()
+      if (userSessionId) params.set('sessionId', userSessionId)
 
-  const handleSendMessage = async (content: string) => {
-    setHasStarted(true)
-    await sendMessage(content)
+      const response = await fetch(`/api/chat/sessions?${params.toString()}`)
+      const data = await response.json()
+
+      if (data.success) {
+        setSessions(data.sessions)
+
+        // 활성 세션이 없으면 가장 최근 세션 선택
+        if (!activeSessionId && data.sessions.length > 0) {
+          setActiveSessionId(data.sessions[0].id)
+        }
+      }
+    } catch (error) {
+      console.error('Error loading sessions:', error)
+    } finally {
+      setIsLoadingSessions(false)
+    }
+  }, [userSessionId, activeSessionId])
+
+  useEffect(() => {
+    loadSessions()
+  }, [loadSessions])
+
+  // 새 세션 생성
+  const handleNewSession = async () => {
+    try {
+      const response = await fetch('/api/chat/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: userSessionId }),
+      })
+      const data = await response.json()
+
+      if (data.success) {
+        setSessions((prev) => [data.session, ...prev])
+        setActiveSessionId(data.session.id)
+        setShowSidebar(false)
+      }
+    } catch (error) {
+      console.error('Error creating session:', error)
+    }
   }
 
-  // 채팅 전 - 환영 화면
-  if (!chatStarted) {
-    return (
-      <div className="flex flex-col h-[calc(100vh-10rem)]">
-        {/* 환영 섹션 */}
-        <div className="flex-1 flex flex-col items-center justify-center px-4">
-          {/* 아이콘 */}
-          <div className="w-20 h-20 rounded-2xl bg-primary/20 flex items-center justify-center mb-6">
-            <span className="text-4xl">🤖</span>
-          </div>
+  // 세션 삭제
+  const handleDeleteSession = async (id: string) => {
+    try {
+      const params = new URLSearchParams()
+      if (userSessionId) params.set('sessionId', userSessionId)
 
-          {/* 타이틀 */}
-          <h1 className="text-2xl font-bold text-white mb-2">
-            MATE AI 도우미
-          </h1>
-          <p className="text-white/60 text-center mb-8">
-            창업 과정에서 궁금한 점이나<br />
-            막히는 부분이 있으면 언제든 물어보세요!
-          </p>
+      await fetch(`/api/chat/sessions/${id}?${params.toString()}`, {
+        method: 'DELETE',
+      })
 
-          {/* 추천 질문 카드 */}
-          <div className="w-full max-w-md space-y-3">
-            {generalQuestions.slice(0, 4).map((q) => (
-              <button
-                key={q.id}
-                onClick={() => handleSendMessage(q.text)}
-                className="
-                  w-full p-4 rounded-xl text-left
-                  bg-white/[0.03] border border-white/[0.06]
-                  hover:bg-white/[0.06] hover:border-white/[0.12]
-                  transition-all duration-200
-                  group
-                "
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-lg">💬</span>
-                  <span className="text-white/80 group-hover:text-white transition-colors">
-                    {q.text}
-                  </span>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
+      setSessions((prev) => prev.filter((s) => s.id !== id))
 
-        {/* 하단 입력창 */}
-        <div className="px-4 py-3">
-          <div className="
-            flex items-center gap-2
-            p-2 rounded-2xl
-            bg-white/[0.05] border border-white/[0.08]
-          ">
-            <input
-              type="text"
-              placeholder="무엇이든 물어보세요..."
-              className="
-                flex-1 bg-transparent text-white text-sm
-                placeholder:text-white/30
-                outline-none px-3 py-2
-              "
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && e.currentTarget.value.trim()) {
-                  handleSendMessage(e.currentTarget.value.trim())
-                  e.currentTarget.value = ''
-                }
-              }}
-            />
-            <button className="
-              w-9 h-9 rounded-xl
-              bg-white/10 text-white/30
-              flex items-center justify-center
-            ">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      </div>
+      if (activeSessionId === id) {
+        const remaining = sessions.filter((s) => s.id !== id)
+        setActiveSessionId(remaining.length > 0 ? remaining[0].id : null)
+      }
+    } catch (error) {
+      console.error('Error deleting session:', error)
+    }
+  }
+
+  // 제목 업데이트
+  const handleTitleUpdate = (title: string) => {
+    if (!activeSessionId) return
+
+    setSessions((prev) =>
+      prev.map((s) => (s.id === activeSessionId ? { ...s, title } : s))
     )
   }
 
-  // 채팅 진행 중 - 풀 채팅 UI
+  // 첫 대화인 경우 자동으로 세션 생성
+  useEffect(() => {
+    if (!isLoadingSessions && sessions.length === 0 && !activeSessionId) {
+      handleNewSession()
+    }
+  }, [isLoadingSessions, sessions.length, activeSessionId])
+
   return (
-    <div className="h-[calc(100vh-10rem)]">
-      <ChatContainer
-        messages={messages}
-        suggestedQuestions={suggestedQuestions}
-        isLoading={isLoading}
-        streamingMessageId={streamingMessageId || undefined}
-        onSendMessage={handleSendMessage}
-        showHeader={false}
-      />
+    <div className="min-h-screen bg-[#0a0a0a] flex flex-col">
+      {/* Header */}
+      <header className="flex-shrink-0 border-b border-white/[0.06] px-4 py-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {/* Mobile Sidebar Toggle */}
+            <button
+              onClick={() => setShowSidebar(!showSidebar)}
+              className="md:hidden w-10 h-10 rounded-lg bg-white/[0.05] flex items-center justify-center"
+            >
+              <svg className="w-5 h-5 text-white/70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+
+            <div>
+              <h1 className="text-lg font-semibold text-white flex items-center gap-2">
+                <span className="text-xl">🤖</span>
+                AI 멘토
+              </h1>
+              <p className="text-xs text-white/40 hidden sm:block">
+                창업에 대해 무엇이든 물어보세요
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={handleNewSession}
+            className="
+              px-4 py-2 rounded-lg
+              bg-accent-purple/20 border border-accent-purple/30
+              text-accent-purple text-sm font-medium
+              hover:bg-accent-purple/30 transition-colors
+              flex items-center gap-2
+            "
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            <span className="hidden sm:inline">새 대화</span>
+          </button>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Sidebar - Desktop */}
+        <aside className="hidden md:block w-64 border-r border-white/[0.06] flex-shrink-0">
+          <ChatSidebar
+            sessions={sessions}
+            activeSessionId={activeSessionId || undefined}
+            onSelectSession={(id) => setActiveSessionId(id)}
+            onNewSession={handleNewSession}
+            onDeleteSession={handleDeleteSession}
+            isLoading={isLoadingSessions}
+          />
+        </aside>
+
+        {/* Mobile Sidebar Overlay */}
+        <AnimatePresence>
+          {showSidebar && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowSidebar(false)}
+                className="fixed inset-0 bg-black/60 z-40 md:hidden"
+              />
+              <motion.aside
+                initial={{ x: -280 }}
+                animate={{ x: 0 }}
+                exit={{ x: -280 }}
+                transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+                className="fixed left-0 top-0 bottom-0 w-[280px] bg-[#0a0a0a] border-r border-white/[0.06] z-50 md:hidden"
+              >
+                <div className="p-4 border-b border-white/[0.06] flex items-center justify-between">
+                  <h2 className="text-lg font-semibold text-white">대화 목록</h2>
+                  <button
+                    onClick={() => setShowSidebar(false)}
+                    className="w-8 h-8 rounded-lg bg-white/[0.05] flex items-center justify-center"
+                  >
+                    <svg className="w-4 h-4 text-white/70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                <ChatSidebar
+                  sessions={sessions}
+                  activeSessionId={activeSessionId || undefined}
+                  onSelectSession={(id) => {
+                    setActiveSessionId(id)
+                    setShowSidebar(false)
+                  }}
+                  onNewSession={() => {
+                    handleNewSession()
+                    setShowSidebar(false)
+                  }}
+                  onDeleteSession={handleDeleteSession}
+                  isLoading={isLoadingSessions}
+                />
+              </motion.aside>
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* Chat Window */}
+        <main className="flex-1 flex flex-col min-w-0 pb-20 md:pb-0">
+          {activeSessionId ? (
+            <ChatWindow
+              sessionId={activeSessionId}
+              userSessionId={userSessionId || undefined}
+              onTitleUpdate={handleTitleUpdate}
+            />
+          ) : (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/20 flex items-center justify-center text-3xl">
+                  🤖
+                </div>
+                <h2 className="text-lg font-semibold text-white mb-2">
+                  AI 멘토와 대화하기
+                </h2>
+                <p className="text-sm text-white/50 mb-4">
+                  새 대화를 시작해보세요
+                </p>
+                <button
+                  onClick={handleNewSession}
+                  className="
+                    px-6 py-3 rounded-xl
+                    bg-accent-purple text-white font-medium
+                    hover:bg-accent-purple/80 transition-colors
+                  "
+                >
+                  대화 시작하기
+                </button>
+              </div>
+            </div>
+          )}
+        </main>
+      </div>
+
+      {/* Bottom Navigation - Mobile */}
+      <div className="md:hidden">
+        <BottomNavigation />
+      </div>
     </div>
   )
 }

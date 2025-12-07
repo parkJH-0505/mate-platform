@@ -11,6 +11,9 @@ export async function GET(
     const { searchParams } = new URL(request.url)
     const sessionId = searchParams.get('sessionId')
 
+    // 현재 사용자 확인
+    const { data: { user } } = await supabase.auth.getUser()
+
     // 콘텐츠 조회
     const { data: content, error: contentError } = await supabase
       .from('curriculum_contents')
@@ -33,18 +36,65 @@ export async function GET(
       )
     }
 
-    // 진행 상황 조회
-    let completed = false
-    if (sessionId) {
-      const { data: progress } = await supabase
-        .from('user_progress')
-        .select('completed')
-        .eq('content_id', id)
-        .eq('session_id', sessionId)
+    // 구독 상태 확인
+    let isSubscribed = false
+    if (user) {
+      const { data: subscription } = await supabase
+        .from('subscriptions')
+        .select('status, current_period_end')
+        .eq('user_id', user.id)
+        .in('status', ['active', 'canceled'])
         .single()
 
-      completed = progress?.completed || false
+      if (subscription) {
+        const now = new Date()
+        const periodEnd = new Date(subscription.current_period_end)
+        isSubscribed = now <= periodEnd
+      }
     }
+
+    // 콘텐츠 순서 확인 (이 콘텐츠가 커리큘럼에서 몇 번째인지)
+    let contentIndex = 0
+    if (content.module?.curriculum_id) {
+      // 같은 커리큘럼의 모든 모듈 조회
+      const { data: modules } = await supabase
+        .from('curriculum_modules')
+        .select('id')
+        .eq('curriculum_id', content.module.curriculum_id)
+        .order('week_number', { ascending: true })
+
+      if (modules && modules.length > 0) {
+        const moduleIds = modules.map(m => m.id)
+
+        // 현재 콘텐츠보다 앞에 있는 콘텐츠 수 계산
+        const { count } = await supabase
+          .from('curriculum_contents')
+          .select('*', { count: 'exact', head: true })
+          .in('module_id', moduleIds)
+          .lt('order_index', content.order_index)
+
+        contentIndex = count || 0
+      }
+    }
+
+    // 첫 번째 콘텐츠(index 0)만 무료, 나머지는 구독 필요
+    const requiresSubscription = contentIndex > 0 && !isSubscribed
+
+    // 진행 상황 조회
+    let completed = false
+    const progressQuery = supabase
+      .from('user_progress')
+      .select('completed')
+      .eq('content_id', id)
+
+    if (user) {
+      progressQuery.eq('user_id', user.id)
+    } else if (sessionId) {
+      progressQuery.eq('session_id', sessionId)
+    }
+
+    const { data: progress } = await progressQuery.single()
+    completed = progress?.completed || false
 
     // 같은 모듈의 다음 콘텐츠 조회
     const { data: nextContent } = await supabase
@@ -71,8 +121,11 @@ export async function GET(
           weekNumber: content.module?.week_number || 1,
           curriculumId: content.module?.curriculum_id
         },
-        isCompleted: completed
+        isCompleted: completed,
+        contentIndex,
+        requiresSubscription
       },
+      isSubscribed,
       nextContent: nextContent ? {
         id: nextContent.id,
         title: nextContent.title,

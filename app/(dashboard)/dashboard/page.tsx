@@ -5,6 +5,49 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useAuth } from '@/hooks/useAuth'
 import { useOnboardingStore } from '@/stores/onboardingStore'
+import { StreakCard, LevelProgress, WeeklyGoal, BadgeShowcase } from '../components'
+
+interface GamificationData {
+  streak: {
+    current: number
+    longest: number
+    weeklyActivity: boolean[]
+  }
+  level: {
+    level: number
+    name: string
+    icon: string
+    totalXP: number
+    currentXP: number
+    nextLevelXP: number
+    progress: number
+  }
+  goal: {
+    target: number
+    completed: number
+    progress: number
+    isAchieved: boolean
+    bonusXP: number
+    isNew?: boolean
+  }
+  badges: Array<{
+    id: string
+    name: string
+    description: string
+    icon: string
+    rarity: 'common' | 'rare' | 'epic' | 'legendary'
+    isEarned: boolean
+    earnedAt?: string
+    progress?: number
+    requirement?: string
+  }>
+  recentBadge?: {
+    id: string
+    name: string
+    icon: string
+    rarity: 'common' | 'rare' | 'epic' | 'legendary'
+  }
+}
 
 interface DashboardData {
   user: {
@@ -50,6 +93,7 @@ export default function DashboardPage() {
   const { sessionId, name: onboardingName } = useOnboardingStore()
 
   const [dashboard, setDashboard] = useState<DashboardData | null>(null)
+  const [gamification, setGamification] = useState<GamificationData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -76,7 +120,42 @@ export default function DashboardPage() {
       }
     }
 
+    const fetchGamification = async () => {
+      try {
+        const params = sessionId ? `?sessionId=${sessionId}` : ''
+
+        // Fetch all gamification data in parallel
+        const [streakRes, levelRes, goalRes, badgeRes] = await Promise.all([
+          fetch(`/api/streak${params}`),
+          fetch(`/api/levels${params}`),
+          fetch(`/api/goals${params}`),
+          fetch(`/api/badges${params}`)
+        ])
+
+        const [streakData, levelData, goalData, badgeData] = await Promise.all([
+          streakRes.json(),
+          levelRes.json(),
+          goalRes.json(),
+          badgeRes.json()
+        ])
+
+        if (streakData.success && levelData.success && goalData.success && badgeData.success) {
+          setGamification({
+            streak: streakData.streak,
+            level: levelData.level,
+            goal: { ...goalData.goal, isNew: goalData.isNew },
+            badges: badgeData.badges,
+            recentBadge: badgeData.recentBadge
+          })
+        }
+      } catch (err) {
+        console.error('Error fetching gamification data:', err)
+        // Gamification data failure is non-critical, don't show error
+      }
+    }
+
     fetchDashboard()
+    fetchGamification()
   }, [authLoading, sessionId])
 
   const handleContinueLearning = () => {
@@ -93,6 +172,25 @@ export default function DashboardPage() {
 
   const handleNewCurriculum = () => {
     router.push('/onboarding')
+  }
+
+  const handleSetGoal = async (target: number) => {
+    try {
+      const response = await fetch('/api/goals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetContents: target, sessionId })
+      })
+      const data = await response.json()
+      if (data.success && gamification) {
+        setGamification({
+          ...gamification,
+          goal: { ...data.goal, isNew: false }
+        })
+      }
+    } catch (err) {
+      console.error('Error setting goal:', err)
+    }
   }
 
   const formatTime = (minutes: number) => {
@@ -276,6 +374,56 @@ export default function DashboardPage() {
           >
             시작하기
           </button>
+        </motion.div>
+      )}
+
+      {/* Gamification Section */}
+      {gamification && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="space-y-4"
+        >
+          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+            나의 성장
+            <span className="text-sm font-normal text-white/40">Growth</span>
+          </h3>
+
+          {/* Streak & Level Row */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <StreakCard
+              current={gamification.streak.current}
+              longest={gamification.streak.longest}
+              weeklyActivity={gamification.streak.weeklyActivity}
+            />
+            <LevelProgress
+              level={gamification.level.level}
+              name={gamification.level.name}
+              icon={gamification.level.icon}
+              currentXP={gamification.level.currentXP}
+              nextLevelXP={gamification.level.nextLevelXP}
+              progress={gamification.level.progress}
+              totalXP={gamification.level.totalXP}
+            />
+          </div>
+
+          {/* Goal & Badges Row */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <WeeklyGoal
+              target={gamification.goal.target}
+              completed={gamification.goal.completed}
+              progress={gamification.goal.progress}
+              isAchieved={gamification.goal.isAchieved}
+              bonusXP={gamification.goal.bonusXP}
+              isNew={gamification.goal.isNew}
+              onSetGoal={handleSetGoal}
+            />
+            <BadgeShowcase
+              badges={gamification.badges}
+              recentBadge={gamification.recentBadge}
+            />
+          </div>
         </motion.div>
       )}
 

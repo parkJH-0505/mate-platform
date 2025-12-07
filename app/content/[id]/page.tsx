@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useOnboardingStore } from '@/stores/onboardingStore'
+import { useAuth } from '@/hooks/useAuth'
+import { Paywall } from '@/components/Paywall'
 
 interface ContentData {
   id: string
@@ -19,6 +21,8 @@ interface ContentData {
     curriculumId: string
   }
   isCompleted: boolean
+  contentIndex: number
+  requiresSubscription: boolean
   nextContent: {
     id: string
     title: string
@@ -33,6 +37,7 @@ export default function ContentPage() {
   const contentId = params.id as string
 
   const { sessionId, curriculumId } = useOnboardingStore()
+  const { user } = useAuth()
 
   const [content, setContent] = useState<ContentData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -41,12 +46,14 @@ export default function ContentPage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'notes'>('overview')
   const [isCompleting, setIsCompleting] = useState(false)
   const [showCompletionAnimation, setShowCompletionAnimation] = useState(false)
+  const [showPaywall, setShowPaywall] = useState(false)
+  const [isSubscribed, setIsSubscribed] = useState(false)
 
   useEffect(() => {
-    if (contentId && sessionId) {
+    if (contentId && (sessionId || user)) {
       fetchContent()
     }
-  }, [contentId, sessionId])
+  }, [contentId, sessionId, user])
 
   const fetchContent = async () => {
     try {
@@ -56,6 +63,12 @@ export default function ContentPage() {
 
       if (data.success) {
         setContent(data.content)
+        setIsSubscribed(data.isSubscribed)
+
+        // 구독이 필요한 콘텐츠인 경우 Paywall 표시
+        if (data.content.requiresSubscription) {
+          setShowPaywall(true)
+        }
       } else {
         setError(data.error || 'Failed to fetch content')
       }
@@ -69,6 +82,12 @@ export default function ContentPage() {
 
   const handleComplete = async () => {
     if (!content || isCompleting) return
+
+    // 구독 필요한 콘텐츠인데 구독이 없으면 Paywall 표시
+    if (content.requiresSubscription) {
+      setShowPaywall(true)
+      return
+    }
 
     try {
       setIsCompleting(true)
@@ -139,6 +158,18 @@ export default function ContentPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
+      {/* Paywall Modal */}
+      <Paywall
+        isOpen={showPaywall}
+        onClose={() => {
+          setShowPaywall(false)
+          // 구독이 필요한데 닫으면 커리큘럼으로 돌아가기
+          if (content.requiresSubscription) {
+            router.push('/curriculum')
+          }
+        }}
+      />
+
       {/* Completion Animation Overlay */}
       {showCompletionAnimation && (
         <motion.div
@@ -186,6 +217,12 @@ export default function ContentPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Free Badge for first content */}
+            {content.contentIndex === 0 && (
+              <span className="px-2 py-1 rounded-full bg-green-500/20 text-green-400 text-xs font-medium">
+                무료
+              </span>
+            )}
             <button
               onClick={() => setIsBookmarked(!isBookmarked)}
               className={`p-2 rounded-lg transition-colors ${
@@ -205,6 +242,27 @@ export default function ContentPage() {
         <div className="max-w-6xl mx-auto">
           {/* Video Player Area */}
           <div className="aspect-video bg-[#121212] flex items-center justify-center relative">
+            {/* Blur overlay for subscription required content */}
+            {content.requiresSubscription && (
+              <div className="absolute inset-0 bg-black/60 backdrop-blur-md z-10 flex items-center justify-center">
+                <div className="text-center p-8">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-accent-purple/20 flex items-center justify-center">
+                    <svg className="w-8 h-8 text-accent-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-white mb-2">프리미엄 콘텐츠</h3>
+                  <p className="text-white/50 mb-4">구독하고 모든 콘텐츠를 이용하세요</p>
+                  <button
+                    onClick={() => setShowPaywall(true)}
+                    className="px-6 py-2 rounded-lg bg-accent-purple text-white font-medium"
+                  >
+                    구독하기
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Mock Video Player */}
             <div className="absolute inset-0 bg-gradient-to-br from-accent-purple/5 to-primary/5" />
             <div className="relative text-center">
@@ -237,6 +295,12 @@ export default function ContentPage() {
                 <span>{content.duration}</span>
                 <span>•</span>
                 <span className="capitalize">{content.type}</span>
+                {content.contentIndex > 0 && !isSubscribed && (
+                  <>
+                    <span>•</span>
+                    <span className="text-accent-purple font-medium">프리미엄</span>
+                  </>
+                )}
               </div>
 
               {/* Completion Status */}
@@ -310,34 +374,62 @@ export default function ContentPage() {
                 </div>
               )}
 
-              {/* Complete Button */}
+              {/* Complete Button - Show subscription CTA or complete button */}
               {!content.isCompleted && (
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={handleComplete}
-                  disabled={isCompleting}
-                  className="w-full mt-8 py-4 rounded-xl bg-gradient-to-r from-accent-purple to-primary text-white font-semibold text-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isCompleting ? (
+                content.requiresSubscription ? (
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setShowPaywall(true)}
+                    className="w-full mt-8 py-4 rounded-xl bg-gradient-to-r from-accent-purple to-primary text-white font-semibold text-lg"
+                  >
                     <span className="flex items-center justify-center gap-2">
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      처리 중...
-                    </span>
-                  ) : (
-                    <span className="flex items-center justify-center gap-2">
-                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                       </svg>
-                      학습 완료하기
+                      구독하고 학습하기
                     </span>
-                  )}
-                </motion.button>
+                  </motion.button>
+                ) : (
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={handleComplete}
+                    disabled={isCompleting}
+                    className="w-full mt-8 py-4 rounded-xl bg-gradient-to-r from-accent-purple to-primary text-white font-semibold text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isCompleting ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        처리 중...
+                      </span>
+                    ) : (
+                      <span className="flex items-center justify-center gap-2">
+                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        학습 완료하기
+                      </span>
+                    )}
+                  </motion.button>
+                )
               )}
             </div>
 
             {/* Sidebar */}
             <aside className="lg:w-80 mt-10 lg:mt-0">
+              {/* Subscription Status */}
+              {isSubscribed && (
+                <div className="p-4 rounded-2xl bg-green-500/10 border border-green-500/20 mb-6">
+                  <div className="flex items-center gap-2 text-green-400 text-sm font-medium">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                    프리미엄 구독 중
+                  </div>
+                </div>
+              )}
+
               {/* Next in Curriculum */}
               {content.nextContent && (
                 <div
@@ -380,7 +472,14 @@ export default function ContentPage() {
 
       {/* Bottom Bar (Mobile) */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-[#0a0a0a]/90 backdrop-blur-xl border-t border-white/[0.06] lg:hidden">
-        {content.isCompleted ? (
+        {content.requiresSubscription ? (
+          <button
+            onClick={() => setShowPaywall(true)}
+            className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-accent-purple to-primary text-white font-medium"
+          >
+            구독하고 학습하기
+          </button>
+        ) : content.isCompleted ? (
           content.nextContent ? (
             <button
               onClick={handleNextContent}

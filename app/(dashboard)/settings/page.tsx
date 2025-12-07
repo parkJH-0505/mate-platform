@@ -8,6 +8,7 @@ import {
   AppInfo,
   AccountSection
 } from '../components/settings'
+import { SubscriptionSection } from '../components/settings/SubscriptionSection'
 import { BottomNavigation } from '../components/BottomNavigation'
 import {
   AppSettings,
@@ -68,6 +69,9 @@ export default function SettingsPage() {
             profile={settings.profile}
             onUpdate={handleProfileUpdate}
           />
+
+          {/* 구독 관리 */}
+          <SubscriptionSection />
 
           {/* 알림 설정 */}
           <NotificationSettings

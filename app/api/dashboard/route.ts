@@ -134,13 +134,14 @@ export async function GET(request: NextRequest) {
 
         if (nextContents && nextContents.length > 0) {
           const next = nextContents[0]
+          const moduleData = Array.isArray(next.module) ? next.module[0] : next.module
           nextContent = {
             id: next.id,
             title: next.title,
             type: next.content_type,
             duration: next.duration,
-            weekNumber: next.module?.week_number,
-            moduleTitle: next.module?.title
+            weekNumber: moduleData?.week_number,
+            moduleTitle: moduleData?.title
           }
         }
       }
@@ -183,12 +184,15 @@ export async function GET(request: NextRequest) {
 
     const { data: activities } = await activitiesQuery
 
-    const recentActivities = activities?.map(a => ({
-      id: a.id,
-      type: 'content_completed',
-      title: a.content?.title || '콘텐츠',
-      completedAt: a.completed_at
-    })) || []
+    const recentActivities = activities?.map(a => {
+      const contentData = Array.isArray(a.content) ? a.content[0] : a.content
+      return {
+        id: a.id,
+        type: 'content_completed',
+        title: contentData?.title || '콘텐츠',
+        completedAt: a.completed_at
+      }
+    }) || []
 
     return NextResponse.json({
       success: true,
