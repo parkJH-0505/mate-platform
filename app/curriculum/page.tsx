@@ -70,8 +70,8 @@ function CurriculumContent() {
 
         if (!response.ok) {
           if (response.status === 404) {
-            // 커리큘럼이 없으면 생성 페이지로
-            router.push('/curriculum/generating')
+            // 커리큘럼이 없으면 온보딩으로
+            router.push('/onboarding')
             return
           }
           throw new Error('커리큘럼을 불러오는데 실패했습니다')

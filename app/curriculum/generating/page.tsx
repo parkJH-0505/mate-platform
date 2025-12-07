@@ -40,8 +40,8 @@ export default function GeneratingPage() {
         const urlConcerns = searchParams.get('concerns')?.split(',') || concerns
 
         if (!urlIndustry || !urlStage || !urlGoal) {
-          setError('온보딩 정보가 없습니다. 다시 시도해주세요.')
-          setTimeout(() => router.push('/onboarding'), 2000)
+          // 온보딩 정보가 없으면 바로 온보딩으로 리다이렉트
+          router.push('/onboarding')
           return
         }
 
