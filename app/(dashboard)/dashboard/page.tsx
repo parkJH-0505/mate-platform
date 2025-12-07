@@ -1,11 +1,11 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useAuth } from '@/hooks/useAuth'
 import { useOnboardingStore } from '@/stores/onboardingStore'
-import { StreakCard, LevelProgress, WeeklyGoal, BadgeShowcase } from '../components'
+import { StreakCard, LevelProgress, WeeklyGoal, BadgeShowcase, RoadmapModal } from '../components'
 
 interface GamificationData {
   streak: {
@@ -87,15 +87,41 @@ interface DashboardData {
   }>
 }
 
+// Roadmap Modal용 커리큘럼 데이터 타입
+interface RoadmapCurriculumData {
+  userName: string
+  industry: string
+  stage: string
+  goal: string
+  durationWeeks: number
+  modules: Array<{
+    weekNumber: number
+    title: string
+    description: string
+    contents: Array<{
+      id: string
+      title: string
+      type: string
+      duration: string
+    }>
+  }>
+  totalContents: number
+}
+
 export default function DashboardPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { user, isLoading: authLoading } = useAuth()
-  const { sessionId, name: onboardingName } = useOnboardingStore()
+  const { sessionId, name: onboardingName, industry, stage, goal } = useOnboardingStore()
 
   const [dashboard, setDashboard] = useState<DashboardData | null>(null)
   const [gamification, setGamification] = useState<GamificationData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // Roadmap Modal 상태
+  const [showRoadmapModal, setShowRoadmapModal] = useState(false)
+  const [roadmapCurriculum, setRoadmapCurriculum] = useState<RoadmapCurriculumData | null>(null)
 
   useEffect(() => {
     if (authLoading) return
@@ -158,16 +184,60 @@ export default function DashboardPage() {
     fetchGamification()
   }, [authLoading, sessionId])
 
+  // URL 파라미터로 Roadmap Modal 트리거
+  useEffect(() => {
+    const showRoadmap = searchParams.get('showRoadmap')
+    const curriculumId = searchParams.get('curriculumId')
+
+    if (showRoadmap === 'true' && curriculumId) {
+      // 커리큘럼 데이터 가져오기
+      const fetchCurriculumForModal = async () => {
+        try {
+          const params = sessionId ? `?sessionId=${sessionId}` : ''
+          const response = await fetch(`/api/curriculum/${curriculumId}${params}`)
+          const data = await response.json()
+
+          if (data.success && data.curriculum) {
+            const curriculum = data.curriculum
+            setRoadmapCurriculum({
+              userName: onboardingName || '창업가',
+              industry: curriculum.industry || industry || '',
+              stage: curriculum.stage || stage || '',
+              goal: curriculum.goal || goal || '',
+              durationWeeks: curriculum.durationWeeks || 4,
+              modules: curriculum.modules || [],
+              totalContents: curriculum.totalContents || 0
+            })
+            setShowRoadmapModal(true)
+          }
+        } catch (err) {
+          console.error('Error fetching curriculum for modal:', err)
+        }
+      }
+
+      fetchCurriculumForModal()
+
+      // URL에서 파라미터 제거 (히스토리 교체)
+      const url = new URL(window.location.href)
+      url.searchParams.delete('showRoadmap')
+      url.searchParams.delete('curriculumId')
+      window.history.replaceState({}, '', url.toString())
+    }
+  }, [searchParams, sessionId, onboardingName, industry, stage, goal])
+
   const handleContinueLearning = () => {
     if (dashboard?.currentCurriculum?.nextContent) {
       router.push(`/content/${dashboard.currentCurriculum.nextContent.id}`)
     } else if (dashboard?.currentCurriculum) {
-      router.push('/curriculum')
+      // 커리큘럼 상세 페이지로 이동 (ID 포함)
+      router.push(`/curriculum?id=${dashboard.currentCurriculum.id}`)
     }
   }
 
   const handleViewCurriculum = () => {
-    router.push('/curriculum')
+    if (dashboard?.currentCurriculum) {
+      router.push(`/curriculum?id=${dashboard.currentCurriculum.id}`)
+    }
   }
 
   const handleNewCurriculum = () => {
@@ -198,6 +268,21 @@ export default function DashboardPage() {
     const hours = Math.floor(minutes / 60)
     const mins = minutes % 60
     return mins > 0 ? `${hours}시간 ${mins}분` : `${hours}시간`
+  }
+
+  // Roadmap Modal 핸들러
+  const handleRoadmapClose = () => {
+    setShowRoadmapModal(false)
+    setRoadmapCurriculum(null)
+  }
+
+  const handleStartLearning = () => {
+    setShowRoadmapModal(false)
+    setRoadmapCurriculum(null)
+    // 첫 번째 콘텐츠로 이동
+    if (dashboard?.currentCurriculum?.nextContent) {
+      router.push(`/content/${dashboard.currentCurriculum.nextContent.id}`)
+    }
   }
 
   if (isLoading || authLoading) {
@@ -693,7 +778,7 @@ export default function DashboardPage() {
             <span className="text-sm text-white">새 커리큘럼</span>
           </button>
           <button
-            onClick={() => router.push('/curriculum')}
+            onClick={handleViewCurriculum}
             className="flex items-center gap-3 p-4 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] transition-colors"
           >
             <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
@@ -705,6 +790,14 @@ export default function DashboardPage() {
           </button>
         </div>
       </motion.div>
+
+      {/* Roadmap Modal - 온보딩 완료 후 표시 */}
+      <RoadmapModal
+        isOpen={showRoadmapModal}
+        onClose={handleRoadmapClose}
+        onStartLearning={handleStartLearning}
+        curriculum={roadmapCurriculum}
+      />
     </div>
   )
 }

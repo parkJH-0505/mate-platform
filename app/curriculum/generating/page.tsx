@@ -68,8 +68,8 @@ export default function GeneratingPage() {
         }
 
         if (data.success) {
-          // 커리큘럼 페이지로 이동
-          router.push(`/curriculum?id=${data.curriculum.id}`)
+          // 대시보드로 이동하면서 로드맵 모달 표시
+          router.push(`/dashboard?showRoadmap=true&curriculumId=${data.curriculum.id}`)
         } else {
           throw new Error(data.error || '알 수 없는 오류가 발생했습니다')
         }

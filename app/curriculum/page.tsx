@@ -90,6 +90,15 @@ function CurriculumContent() {
 
   const { sessionId, setCurriculumId } = useOnboardingStore()
 
+  // 직접 접근 시 대시보드로 리다이렉트 (id 파라미터 없이 접근한 경우)
+  useEffect(() => {
+    const curriculumId = searchParams.get('id')
+    if (!curriculumId) {
+      // ID 없이 접근하면 대시보드로 리다이렉트
+      router.replace('/dashboard')
+    }
+  }, [searchParams, router])
+
   useEffect(() => {
     const fetchData = async () => {
       try {

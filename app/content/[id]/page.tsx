@@ -107,12 +107,12 @@ export default function ContentPage() {
         setContent(prev => prev ? { ...prev, isCompleted: true } : null)
         setShowCompletionAnimation(true)
 
-        // Wait for animation then navigate to next content or curriculum
+        // Wait for animation then navigate to next content or dashboard
         setTimeout(() => {
           if (content.nextContent) {
             router.push(`/content/${content.nextContent.id}`)
           } else {
-            router.push('/curriculum')
+            router.push('/dashboard')
           }
         }, 1500)
       }
@@ -146,10 +146,10 @@ export default function ContentPage() {
         <div className="text-center">
           <p className="text-white/60 mb-4">{error || '콘텐츠를 찾을 수 없습니다'}</p>
           <button
-            onClick={() => router.push('/curriculum')}
+            onClick={() => router.push('/dashboard')}
             className="px-4 py-2 rounded-lg bg-accent-purple text-white"
           >
-            커리큘럼으로 돌아가기
+            대시보드로 돌아가기
           </button>
         </div>
       </div>
@@ -163,9 +163,9 @@ export default function ContentPage() {
         isOpen={showPaywall}
         onClose={() => {
           setShowPaywall(false)
-          // 구독이 필요한데 닫으면 커리큘럼으로 돌아가기
+          // 구독이 필요한데 닫으면 대시보드로 돌아가기
           if (content.requiresSubscription) {
-            router.push('/curriculum')
+            router.push('/dashboard')
           }
         }}
       />
@@ -195,7 +195,7 @@ export default function ContentPage() {
             </motion.div>
             <h2 className="text-2xl font-bold text-white mb-2">학습 완료!</h2>
             <p className="text-white/60">
-              {content.nextContent ? '다음 콘텐츠로 이동합니다...' : '커리큘럼으로 돌아갑니다...'}
+              {content.nextContent ? '다음 콘텐츠로 이동합니다...' : '대시보드로 돌아갑니다...'}
             </p>
           </motion.div>
         </motion.div>
@@ -206,7 +206,7 @@ export default function ContentPage() {
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => router.push('/curriculum')}
+              onClick={() => router.push('/dashboard')}
               className="p-2 rounded-lg hover:bg-white/5 transition-colors"
             >
               <svg className="w-5 h-5 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -459,10 +459,10 @@ export default function ContentPage() {
                 <h4 className="font-semibold text-white mb-3">{content.module.weekNumber}주차</h4>
                 <p className="text-sm text-white/60">{content.module.title}</p>
                 <button
-                  onClick={() => router.push('/curriculum')}
+                  onClick={() => router.push('/dashboard')}
                   className="mt-4 w-full py-2 rounded-lg bg-white/5 text-sm text-white/60 hover:bg-white/10 transition-colors"
                 >
-                  커리큘럼 보기
+                  대시보드로 가기
                 </button>
               </div>
             </aside>
@@ -489,10 +489,10 @@ export default function ContentPage() {
             </button>
           ) : (
             <button
-              onClick={() => router.push('/curriculum')}
+              onClick={() => router.push('/dashboard')}
               className="w-full px-6 py-3 rounded-xl bg-white/10 text-white font-medium"
             >
-              커리큘럼으로 돌아가기
+              대시보드로 돌아가기
             </button>
           )
         ) : (

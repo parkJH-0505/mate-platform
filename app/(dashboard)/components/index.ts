@@ -4,6 +4,7 @@ export { WelcomeSection } from './WelcomeSection'
 export { ContinueCard } from './ContinueCard'
 export { NewDiagnosisSection } from './NewDiagnosisSection'
 export { StatsSection } from './StatsSection'
+export { RoadmapModal } from './RoadmapModal'
 
 // Gamification components
 export { StreakCard } from './StreakCard'
