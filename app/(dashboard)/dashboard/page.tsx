@@ -6,6 +6,8 @@ import { motion } from 'framer-motion'
 import { useAuth } from '@/hooks/useAuth'
 import { useOnboardingStore } from '@/stores/onboardingStore'
 import { StreakCard, LevelProgress, WeeklyGoal, BadgeShowcase, RoadmapModal, CurriculumAccordion } from '../components'
+import { TodaysPlanCard } from '../components/TodaysPlan'
+import { WeeklyRecommendations, RecentActivity } from '../components/SmartFeed'
 
 interface GamificationData {
   streak: {
@@ -390,7 +392,29 @@ export default function DashboardPage() {
         </div>
       </motion.div>
 
-      {/* 오늘의 한 발 카드 - 최상단 고정 */}
+      {/* Today's Plan 카드 - 실행 기반 경험 */}
+      {hasCurriculum && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+        >
+          <TodaysPlanCard sessionId={sessionId} />
+        </motion.div>
+      )}
+
+      {/* 스마트 피드 섹션 - 추천 & 활동 */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.08 }}
+        className="grid grid-cols-1 md:grid-cols-2 gap-4"
+      >
+        <WeeklyRecommendations sessionId={sessionId} />
+        <RecentActivity sessionId={sessionId} />
+      </motion.div>
+
+      {/* 오늘의 한 발 카드 - 최상단 고정 (기존) */}
       {hasCurriculum && dashboard?.currentCurriculum?.nextContent && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
