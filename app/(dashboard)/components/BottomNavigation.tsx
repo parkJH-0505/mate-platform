@@ -33,6 +33,16 @@ const navItems: NavItem[] = [
     )
   },
   {
+    id: 'explore',
+    label: '콘텐츠',
+    href: '/explore',
+    icon: (
+      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+      </svg>
+    )
+  },
+  {
     id: 'ai',
     label: 'AI',
     href: '/ai',
@@ -70,8 +80,9 @@ export const BottomNavigation: React.FC = () => {
           {navItems.map((item) => {
             const isActive = pathname === item.href ||
               (item.href === '/dashboard' && pathname === '/dashboard') ||
-              (item.href === '/ai' && pathname === '/ai') ||
               (item.href === '/status' && pathname === '/status') ||
+              (item.href === '/explore' && pathname === '/explore') ||
+              (item.href === '/ai' && pathname === '/ai') ||
               (item.href === '/settings' && pathname === '/settings')
 
             return (
