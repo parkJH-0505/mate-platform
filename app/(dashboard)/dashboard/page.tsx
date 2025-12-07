@@ -335,7 +335,7 @@ export default function DashboardPage() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-accent-purple/20 via-primary/10 to-transparent border-2 border-accent-purple/40 p-6 backdrop-blur-xl shadow-[0_8px_32px_0_rgba(147,97,253,0.12)]"
+        className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-accent-purple/20 via-primary/10 to-transparent border-2 border-accent-purple/40 p-6 backdrop-blur-xl shadow-[0_8px_32px_0_rgba(147,97,253,0.12)] animate-shine-border"
       >
         <div className="absolute top-0 right-0 w-32 h-32 bg-accent-purple/20 rounded-full blur-[60px]" />
 
