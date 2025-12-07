@@ -57,9 +57,11 @@ export function ContentCard({ content, index }: Props) {
         href={`/content/${content.id}`}
         className="
           block rounded-xl overflow-hidden
-          bg-white/[0.03] border border-white/[0.06]
-          hover:border-white/[0.12] hover:bg-white/[0.05]
+          bg-white/[0.05] border-2 border-white/[0.12]
+          hover:border-white/[0.2] hover:bg-white/[0.08]
           transition-all group
+          backdrop-blur-sm
+          shadow-[0_4px_16px_0_rgba(0,0,0,0.2)]
         "
       >
         {/* 썸네일 */}

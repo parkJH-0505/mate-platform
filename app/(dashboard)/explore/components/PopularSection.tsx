@@ -89,9 +89,11 @@ function PopularCard({ content, index }: { content: PopularContent; index: numbe
         href={`/content/${content.id}`}
         className="
           block rounded-xl overflow-hidden
-          bg-white/[0.03] border border-white/[0.06]
-          hover:border-white/[0.12] hover:bg-white/[0.05]
+          bg-white/[0.05] border-2 border-white/[0.12]
+          hover:border-white/[0.2] hover:bg-white/[0.08]
           transition-all group
+          backdrop-blur-sm
+          shadow-[0_4px_16px_0_rgba(0,0,0,0.2)]
         "
       >
         {/* 썸네일 */}
@@ -154,7 +156,7 @@ function PopularSkeleton() {
       <div className="h-6 w-32 bg-white/[0.05] rounded animate-pulse mb-4" />
       <div className="flex gap-4 overflow-hidden">
         {[1, 2, 3].map(i => (
-          <div key={i} className="flex-shrink-0 w-64 rounded-xl overflow-hidden bg-white/[0.03] border border-white/[0.06]">
+          <div key={i} className="flex-shrink-0 w-64 rounded-xl overflow-hidden bg-white/[0.05] border-2 border-white/[0.12]">
             <div className="aspect-video bg-white/[0.05] animate-pulse" />
             <div className="p-3 space-y-2">
               <div className="h-4 w-full bg-white/[0.05] rounded animate-pulse" />
