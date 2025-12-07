@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useAuth } from '@/hooks/useAuth'
 import { useOnboardingStore } from '@/stores/onboardingStore'
-import { StreakCard, LevelProgress, WeeklyGoal, BadgeShowcase, RoadmapModal } from '../components'
+import { StreakCard, LevelProgress, WeeklyGoal, BadgeShowcase, RoadmapModal, CurriculumAccordion } from '../components'
 
 interface GamificationData {
   streak: {
@@ -78,6 +78,18 @@ interface DashboardData {
       weekNumber: number
       moduleTitle: string
     } | null
+    modules?: Array<{
+      weekNumber: number
+      title: string
+      description: string
+      contents: Array<{
+        id: string
+        title: string
+        type: string
+        duration: string
+      }>
+    }>
+    completedContentIds?: string[]
   } | null
   recentActivities: Array<{
     id: string
@@ -476,7 +488,7 @@ export default function DashboardPage() {
           )}
 
           {/* Actions */}
-          <div className="flex gap-3">
+          <div className="flex gap-3 mb-4">
             <button
               onClick={handleContinueLearning}
               className="flex-1 py-3 rounded-xl bg-gradient-to-r from-accent-purple to-primary text-white font-semibold hover:shadow-[0_0_30px_rgba(147,97,253,0.3)] transition-all"
@@ -492,6 +504,23 @@ export default function DashboardPage() {
               </svg>
             </button>
           </div>
+
+          {/* Curriculum Accordion */}
+          {dashboard.currentCurriculum.modules && dashboard.currentCurriculum.modules.length > 0 && (
+            <div className="pt-4 border-t border-white/[0.06]">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-medium text-white/70">주차별 커리큘럼</h3>
+                <span className="text-xs text-white/40">
+                  {dashboard.currentCurriculum.modules.length}주 과정
+                </span>
+              </div>
+              <CurriculumAccordion
+                modules={dashboard.currentCurriculum.modules}
+                currentWeek={dashboard.currentCurriculum.nextContent?.weekNumber || 1}
+                completedContentIds={dashboard.currentCurriculum.completedContentIds || []}
+              />
+            </div>
+          )}
         </motion.div>
       )}
 

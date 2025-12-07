@@ -78,6 +78,80 @@ const STAGE_LABELS: Record<string, string> = {
   '스케일업': '스케일업',
 }
 
+// 목표별 완료 시 얻는 것
+const GOAL_OUTCOMES: Record<string, { title: string; items: string[] }> = {
+  'validate': {
+    title: '아이디어 검증',
+    items: [
+      '시장에서 검증된 고객 니즈',
+      '확신을 갖고 진행할 명확한 방향',
+      '시간과 비용 낭비 방지',
+    ]
+  },
+  'funding': {
+    title: '투자 유치',
+    items: [
+      '투자자를 설득할 IR 스토리',
+      '검증된 비즈니스 모델',
+      '사업 확장을 위한 성장 자금',
+    ]
+  },
+  'revenue': {
+    title: '매출 성장',
+    items: [
+      '지속가능한 매출 구조',
+      '반복 가능한 성장 엔진',
+      '수익성 있는 비즈니스',
+    ]
+  },
+  'product': {
+    title: '제품 완성',
+    items: [
+      '시장에 출시 가능한 MVP',
+      '사용자 피드백 기반의 개선점',
+      '제품-시장 핏의 실마리',
+    ]
+  },
+  'team': {
+    title: '팀 빌딩',
+    items: [
+      '함께 성장할 핵심 팀원',
+      '효과적인 협업 시스템',
+      '강력한 조직 문화의 기반',
+    ]
+  },
+  'scale': {
+    title: '스케일업',
+    items: [
+      '확장 가능한 성장 전략',
+      '시스템화된 운영 프로세스',
+      '다음 단계로의 도약 준비',
+    ]
+  },
+}
+
+// 목표 매핑 (한글 목표 -> 키)
+const GOAL_KEY_MAP: Record<string, string> = {
+  '아이디어 검증': 'validate',
+  '사업 검증': 'validate',
+  'PMF 검증': 'validate',
+  '투자 유치': 'funding',
+  '투자유치': 'funding',
+  '펀딩': 'funding',
+  '매출 성장': 'revenue',
+  '매출성장': 'revenue',
+  '수익 창출': 'revenue',
+  '제품 완성': 'product',
+  'MVP 개발': 'product',
+  'MVP 출시': 'product',
+  '팀 빌딩': 'team',
+  '팀빌딩': 'team',
+  '채용': 'team',
+  '스케일업': 'scale',
+  '성장': 'scale',
+  '확장': 'scale',
+}
+
 function CurriculumContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -576,40 +650,175 @@ function CurriculumContent() {
             })}
           </div>
 
-          {/* Why This Curriculum */}
-          <div className="mt-12 p-6 rounded-2xl bg-white/[0.02] border border-white/[0.06]">
-            <h3 className="flex items-center gap-2 text-lg font-semibold text-white mb-4">
+          {/* About This Curriculum Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="mt-12 space-y-6"
+          >
+            <h2 className="text-xl font-semibold text-white flex items-center gap-2">
               <svg className="w-5 h-5 text-accent-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              왜 이 커리큘럼인가요?
-            </h3>
-            <ul className="space-y-3 text-sm text-white/60">
-              {curriculum.reasoning && curriculum.reasoning.length > 0 ? (
-                curriculum.reasoning.map((reason, index) => (
-                  <li key={index} className="flex items-start gap-2">
-                    <span className="text-accent-purple">•</span>
-                    <span>{reason}</span>
-                  </li>
-                ))
-              ) : (
-                <>
-                  <li className="flex items-start gap-2">
-                    <span className="text-accent-purple">•</span>
-                    <span><strong className="text-white/80">{curriculum.industry}</strong> 산업에서 <strong className="text-white/80">{curriculum.stage}</strong> 단계에 있는 분들에게 최적화된 순서입니다.</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-accent-purple">•</span>
-                    <span>3개월 내 <strong className="text-white/80">{curriculum.goal}</strong> 목표 달성을 위해 설계되었습니다.</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-accent-purple">•</span>
-                    <span>비슷한 상황의 창업자들이 가장 효과를 본 콘텐츠 순서로 정렬했습니다.</span>
-                  </li>
-                </>
-              )}
-            </ul>
-          </div>
+              이 커리큘럼에 대해
+            </h2>
+
+            {/* AI Analysis Card */}
+            <div className="p-6 rounded-2xl bg-gradient-to-br from-accent-purple/10 via-primary/5 to-transparent border border-accent-purple/20">
+              <div className="flex items-center gap-2 text-accent-purple mb-4">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                <span className="text-sm font-medium">AI 분석 결과</span>
+              </div>
+
+              <p className="text-white/70 text-sm mb-4">
+                {curriculum.userName}님의 상황을 분석하여 최적의 학습 경로를 설계했습니다.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {/* Industry */}
+                <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-lg">🏢</span>
+                    <span className="text-xs text-white/40">산업 분야</span>
+                  </div>
+                  <p className="text-sm font-medium text-white">
+                    {INDUSTRY_LABELS[curriculum.industry] || curriculum.industry}
+                  </p>
+                </div>
+
+                {/* Stage */}
+                <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-lg">📍</span>
+                    <span className="text-xs text-white/40">현재 단계</span>
+                  </div>
+                  <p className="text-sm font-medium text-white">
+                    {STAGE_LABELS[curriculum.stage] || curriculum.stage}
+                  </p>
+                </div>
+
+                {/* Goal */}
+                <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-lg">🎯</span>
+                    <span className="text-xs text-white/40">목표</span>
+                  </div>
+                  <p className="text-sm font-medium text-white">
+                    {curriculum.goal}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Why This Curriculum */}
+            <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.06]">
+              <h3 className="flex items-center gap-2 text-base font-semibold text-white mb-4">
+                <svg className="w-5 h-5 text-accent-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+                왜 이렇게 설계했나요?
+              </h3>
+              <ul className="space-y-3 text-sm text-white/60">
+                {curriculum.reasoning && curriculum.reasoning.length > 0 ? (
+                  curriculum.reasoning.map((reason, index) => (
+                    <li key={index} className="flex items-start gap-2">
+                      <span className="text-accent-purple mt-1">•</span>
+                      <span>{reason}</span>
+                    </li>
+                  ))
+                ) : (
+                  <>
+                    <li className="flex items-start gap-2">
+                      <span className="text-accent-purple mt-1">•</span>
+                      <span><strong className="text-white/80">{INDUSTRY_LABELS[curriculum.industry] || curriculum.industry}</strong> 산업에서 <strong className="text-white/80">{STAGE_LABELS[curriculum.stage] || curriculum.stage}</strong>에 있는 분들에게 가장 효과적인 순서로 구성했습니다.</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-accent-purple mt-1">•</span>
+                      <span>{curriculum.durationWeeks}주 안에 <strong className="text-white/80">{curriculum.goal}</strong> 목표를 달성할 수 있도록 단계별로 설계했습니다.</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-accent-purple mt-1">•</span>
+                      <span>비슷한 상황의 창업자들이 가장 효과를 본 콘텐츠를 우선순위에 따라 배치했습니다.</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-accent-purple mt-1">•</span>
+                      <span>매 주차는 이론 학습 → 실습 → 적용의 흐름으로 구성되어 바로 실행할 수 있습니다.</span>
+                    </li>
+                  </>
+                )}
+              </ul>
+            </div>
+
+            {/* What You'll Get */}
+            {(() => {
+              const goalKey = GOAL_KEY_MAP[curriculum.goal] || Object.keys(GOAL_OUTCOMES).find(key =>
+                curriculum.goal.toLowerCase().includes(key)
+              ) || 'validate'
+              const outcomes = GOAL_OUTCOMES[goalKey]
+
+              return (
+                <div className="p-6 rounded-2xl bg-gradient-to-br from-green-500/10 via-green-500/5 to-transparent border border-green-500/20">
+                  <h3 className="flex items-center gap-2 text-base font-semibold text-white mb-4">
+                    <span className="text-lg">🎁</span>
+                    이 커리큘럼을 완료하면
+                  </h3>
+
+                  <p className="text-white/60 text-sm mb-4">
+                    {curriculum.durationWeeks}주 후, {curriculum.userName}님은 다음을 얻게 됩니다:
+                  </p>
+
+                  <div className="space-y-3">
+                    {outcomes.items.map((item, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-3 p-3 rounded-xl bg-white/5"
+                      >
+                        <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                          <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                        <span className="text-sm text-white/80">{item}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-4 pt-4 border-t border-green-500/10">
+                    <p className="text-xs text-white/40 text-center">
+                      매일 조금씩, {curriculum.durationWeeks}주 후에는 완전히 다른 당신이 됩니다 ✨
+                    </p>
+                  </div>
+                </div>
+              )
+            })()}
+
+            {/* Curriculum Summary Stats */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.06] text-center">
+                <p className="text-2xl font-bold text-white mb-1">{curriculum.durationWeeks}</p>
+                <p className="text-xs text-white/40">주 과정</p>
+              </div>
+              <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.06] text-center">
+                <p className="text-2xl font-bold text-white mb-1">
+                  {curriculum.modules.reduce((acc, m) => acc + m.contents.length, 0)}
+                </p>
+                <p className="text-xs text-white/40">개 콘텐츠</p>
+              </div>
+              <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.06] text-center">
+                <p className="text-2xl font-bold text-white mb-1">
+                  {Math.round(curriculum.modules.reduce((acc, m) =>
+                    acc + m.contents.reduce((cAcc, c) => {
+                      const match = c.duration.match(/(\d+)/)
+                      return cAcc + (match ? parseInt(match[1]) : 10)
+                    }, 0), 0) / 60)}
+                </p>
+                <p className="text-xs text-white/40">시간 분량</p>
+              </div>
+            </div>
+          </motion.div>
         </div>
       </main>
 

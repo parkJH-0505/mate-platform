@@ -76,23 +76,62 @@ export async function GET(request: NextRequest) {
     }
 
     let nextContent = null
+    let curriculumModules: Array<{
+      weekNumber: number
+      title: string
+      description: string
+      contents: Array<{
+        id: string
+        title: string
+        type: string
+        duration: string
+      }>
+    }> = []
+    let completedContentIds: string[] = []
 
     if (currentCurriculum) {
-      // 전체 콘텐츠 수
+      // 전체 모듈과 콘텐츠 조회
       const { data: modules } = await supabase
         .from('curriculum_modules')
-        .select('id')
+        .select(`
+          id,
+          week_number,
+          title,
+          description,
+          curriculum_contents (
+            id,
+            title,
+            content_type,
+            duration,
+            order_index
+          )
+        `)
         .eq('curriculum_id', currentCurriculum.id)
+        .order('week_number', { ascending: true })
 
       if (modules && modules.length > 0) {
         const moduleIds = modules.map(m => m.id)
 
-        const { count: totalCount } = await supabase
-          .from('curriculum_contents')
-          .select('*', { count: 'exact', head: true })
-          .in('module_id', moduleIds)
+        // 모듈별 콘텐츠 정리
+        curriculumModules = modules.map(m => ({
+          weekNumber: m.week_number,
+          title: m.title,
+          description: m.description || '',
+          contents: (m.curriculum_contents || [])
+            .sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0))
+            .map((c: any) => ({
+              id: c.id,
+              title: c.title,
+              type: c.content_type,
+              duration: c.duration
+            }))
+        }))
 
-        progress.totalContents = totalCount || 0
+        // 전체 콘텐츠 수 계산
+        progress.totalContents = curriculumModules.reduce(
+          (acc, m) => acc + m.contents.length,
+          0
+        )
 
         // 완료한 콘텐츠 수
         const progressQuery = supabase
@@ -108,7 +147,8 @@ export async function GET(request: NextRequest) {
         }
 
         const { data: completedProgress } = await progressQuery
-        progress.completedContents = completedProgress?.length || 0
+        completedContentIds = completedProgress?.map(p => p.content_id) || []
+        progress.completedContents = completedContentIds.length
         progress.progressPercent = progress.totalContents > 0
           ? Math.round((progress.completedContents / progress.totalContents) * 100)
           : 0
@@ -116,8 +156,6 @@ export async function GET(request: NextRequest) {
         stats.totalContentsCompleted = progress.completedContents
 
         // 다음 학습할 콘텐츠 찾기
-        const completedIds = completedProgress?.map(p => p.content_id) || []
-
         const { data: nextContents } = await supabase
           .from('curriculum_contents')
           .select(`
@@ -128,7 +166,7 @@ export async function GET(request: NextRequest) {
             module:curriculum_modules(week_number, title)
           `)
           .in('module_id', moduleIds)
-          .not('id', 'in', completedIds.length > 0 ? `(${completedIds.join(',')})` : '(00000000-0000-0000-0000-000000000000)')
+          .not('id', 'in', completedContentIds.length > 0 ? `(${completedContentIds.join(',')})` : '(00000000-0000-0000-0000-000000000000)')
           .order('order_index', { ascending: true })
           .limit(1)
 
@@ -211,7 +249,9 @@ export async function GET(request: NextRequest) {
         progress: progress.progressPercent,
         totalContents: progress.totalContents,
         completedContents: progress.completedContents,
-        nextContent
+        nextContent,
+        modules: curriculumModules,
+        completedContentIds
       } : null,
       recentActivities
     })

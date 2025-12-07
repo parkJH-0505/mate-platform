@@ -5,6 +5,7 @@ export { ContinueCard } from './ContinueCard'
 export { NewDiagnosisSection } from './NewDiagnosisSection'
 export { StatsSection } from './StatsSection'
 export { RoadmapModal } from './RoadmapModal'
+export { CurriculumAccordion } from './CurriculumAccordion'
 
 // Gamification components
 export { StreakCard } from './StreakCard'
