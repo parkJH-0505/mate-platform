@@ -197,20 +197,16 @@ export default function OnboardingPage() {
       setCompleted(true)
       setIsSaving(false)
 
-      // 로그인 상태면 바로 커리큘럼으로, 아니면 로그인 유도
+      // 커리큘럼 생성 페이지로 이동
       setTimeout(() => {
-        if (isAuthenticated) {
-          router.push('/curriculum')
-        } else {
-          router.push('/onboarding/complete')
-        }
+        router.push('/curriculum/generating')
       }, 2000)
     } catch (error) {
       console.error('Onboarding save error:', error)
       setIsSaving(false)
       // 에러가 나도 일단 진행 (프로토타입)
       setTimeout(() => {
-        router.push('/curriculum')
+        router.push('/curriculum/generating')
       }, 2000)
     }
   }
