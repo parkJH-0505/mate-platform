@@ -187,13 +187,13 @@ export default function AIPage() {
                 animate={{ x: 0 }}
                 exit={{ x: -280 }}
                 transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-                className="fixed left-0 top-0 bottom-0 w-[280px] bg-[#0a0a0a] border-r border-white/[0.06] z-50 md:hidden"
+                className="fixed left-0 top-0 bottom-0 w-[min(280px,85vw)] bg-[#0a0a0a] border-r border-white/[0.06] z-50 md:hidden"
               >
                 <div className="p-4 border-b border-white/[0.06] flex items-center justify-between">
                   <h2 className="text-lg font-semibold text-white">대화 목록</h2>
                   <button
                     onClick={() => setShowSidebar(false)}
-                    className="w-8 h-8 rounded-lg bg-white/[0.05] flex items-center justify-center"
+                    className="w-10 h-10 rounded-lg bg-white/[0.05] flex items-center justify-center"
                   >
                     <svg className="w-4 h-4 text-white/70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

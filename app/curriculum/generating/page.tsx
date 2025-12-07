@@ -166,19 +166,24 @@ export default function GeneratingPage() {
           {loadingMessages[currentMessage]}
         </motion.p>
 
-        {/* 프로그레스 바 */}
+        {/* 프로그레스 바 (indeterminate) */}
         <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
           <motion.div
-            className="h-full bg-gradient-to-r from-accent-purple to-primary"
-            initial={{ width: '0%' }}
-            animate={{ width: '100%' }}
-            transition={{ duration: 15, ease: 'easeInOut' }}
+            className="h-full w-1/3 bg-gradient-to-r from-accent-purple to-primary"
+            animate={{
+              x: ['-100%', '400%']
+            }}
+            transition={{
+              duration: 1.5,
+              repeat: Infinity,
+              ease: 'easeInOut'
+            }}
           />
         </div>
 
         {/* 추가 정보 */}
         <p className="mt-6 text-sm text-white/40">
-          보통 10-15초 정도 소요됩니다
+          AI가 분석 중입니다. 잠시만 기다려주세요.
         </p>
       </motion.div>
     </div>

@@ -18,6 +18,7 @@ function LoginContent() {
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
   const [showEmailForm, setShowEmailForm] = useState(true) // 이메일 폼 기본 표시
+  const [emailConfirmationSent, setEmailConfirmationSent] = useState(false)
 
   // 로그인 후 리다이렉트할 경로
   const redirectTo = searchParams.get('redirect') || '/dashboard'
@@ -60,18 +61,31 @@ function LoginContent() {
 
       if (mode === 'signup') {
         // 회원가입
+        const callbackUrl = sessionId
+          ? `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}&sessionId=${sessionId}`
+          : `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}`
+
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             data: { name },
+            emailRedirectTo: callbackUrl,
           },
         })
 
         if (error) throw error
 
-        if (data.user) {
-          // 세션 데이터 마이그레이션
+        // 이메일 확인이 필요한 경우 (세션이 없거나 confirmed_at이 없는 경우)
+        if (data.user && !data.session) {
+          // 이메일 확인 대기 상태
+          setEmailConfirmationSent(true)
+          setIsLoading(null)
+          return
+        }
+
+        if (data.user && data.session) {
+          // 이메일 확인 없이 바로 로그인된 경우 (테스트 환경 등)
           if (sessionId) {
             await migrateSessionData(supabase, sessionId, data.user.id)
           }
@@ -134,6 +148,62 @@ function LoginContent() {
     }
   }
 
+  // 이메일 확인 대기 화면
+  if (emailConfirmationSent) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="text-center max-w-md"
+        >
+          {/* Email Icon */}
+          <div className="relative w-24 h-24 mx-auto mb-8">
+            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-accent-purple to-primary opacity-20" />
+            <div className="absolute inset-2 rounded-full bg-[#0a0a0a] flex items-center justify-center">
+              <svg className="w-12 h-12 text-accent-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </div>
+          </div>
+
+          <h2 className="text-2xl font-bold text-white mb-3">
+            이메일을 확인해주세요
+          </h2>
+
+          <p className="text-white/60 mb-2">
+            <span className="text-accent-purple font-medium">{email}</span>
+          </p>
+
+          <p className="text-white/50 text-sm mb-8">
+            회원가입을 완료하려면 이메일로 발송된<br />
+            확인 링크를 클릭해주세요.
+          </p>
+
+          <div className="space-y-3">
+            <button
+              onClick={() => {
+                setEmailConfirmationSent(false)
+                setMode('login')
+              }}
+              className="w-full py-4 rounded-xl font-semibold text-lg bg-gradient-to-r from-accent-purple to-primary text-white hover:shadow-[0_0_30px_rgba(147,97,253,0.4)] transition-all"
+            >
+              로그인 화면으로 돌아가기
+            </button>
+          </div>
+
+          <div className="mt-8 p-4 rounded-xl bg-white/5 border border-white/10">
+            <p className="text-xs text-white/40">
+              이메일이 도착하지 않았나요?<br />
+              스팸함을 확인하거나 잠시 후 다시 시도해주세요.
+            </p>
+          </div>
+        </motion.div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex flex-col">
       {/* Header */}
@@ -191,7 +261,7 @@ function LoginContent() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="홍길동"
-                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-accent-purple transition-colors"
+                    className="w-full px-4 py-3.5 min-h-[44px] rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-accent-purple transition-colors"
                     required
                   />
                 </div>
@@ -203,7 +273,7 @@ function LoginContent() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="email@example.com"
-                  className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-accent-purple transition-colors"
+                  className="w-full px-4 py-3.5 min-h-[44px] rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-accent-purple transition-colors"
                   required
                 />
               </div>
@@ -215,7 +285,7 @@ function LoginContent() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   minLength={6}
-                  className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-accent-purple transition-colors"
+                  className="w-full px-4 py-3.5 min-h-[44px] rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-accent-purple transition-colors"
                   required
                 />
               </div>

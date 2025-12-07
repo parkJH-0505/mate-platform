@@ -432,25 +432,25 @@ export default function DashboardPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="grid grid-cols-3 gap-4"
+        className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4"
       >
-        <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-4 text-center">
-          <p className="text-2xl font-bold text-white mb-1">
+        <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-4 sm:p-5 flex sm:flex-col items-center sm:items-center justify-between sm:justify-center gap-2 sm:gap-0 sm:text-center">
+          <p className="text-xs text-white/50 sm:order-2 sm:mt-1">완료한 콘텐츠</p>
+          <p className="text-2xl font-bold text-white sm:order-1">
             {dashboard?.stats?.totalContentsCompleted || 0}
           </p>
-          <p className="text-xs text-white/50">완료한 콘텐츠</p>
         </div>
-        <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-4 text-center">
-          <p className="text-2xl font-bold text-white mb-1">
+        <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-4 sm:p-5 flex sm:flex-col items-center sm:items-center justify-between sm:justify-center gap-2 sm:gap-0 sm:text-center">
+          <p className="text-xs text-white/50 sm:order-2 sm:mt-1">생성한 커리큘럼</p>
+          <p className="text-2xl font-bold text-white sm:order-1">
             {dashboard?.stats?.totalCurriculums || 0}
           </p>
-          <p className="text-xs text-white/50">생성한 커리큘럼</p>
         </div>
-        <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-4 text-center">
-          <p className="text-2xl font-bold text-white mb-1">
+        <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-4 sm:p-5 flex sm:flex-col items-center sm:items-center justify-between sm:justify-center gap-2 sm:gap-0 sm:text-center">
+          <p className="text-xs text-white/50 sm:order-2 sm:mt-1">총 학습 시간</p>
+          <p className="text-2xl font-bold text-white sm:order-1">
             {formatTime(dashboard?.stats?.totalLearningMinutes || 0)}
           </p>
-          <p className="text-xs text-white/50">총 학습 시간</p>
         </div>
       </motion.div>
 

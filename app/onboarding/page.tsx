@@ -6,6 +6,9 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useOnboardingStore } from '@/stores/onboardingStore'
 import { useAuth } from '@/hooks/useAuth'
 
+// 온보딩 데이터를 localStorage에 백업 (새로고침 대비)
+const ONBOARDING_BACKUP_KEY = 'mate_onboarding_backup'
+
 // 온보딩 스텝 정의
 const STEPS = [
   {
@@ -98,24 +101,53 @@ export default function OnboardingPage() {
 
   const [isGenerating, setIsGenerating] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [sessionError, setSessionError] = useState<string | null>(null)
+  const [isInitializing, setIsInitializing] = useState(true)
+
+  // 온보딩 데이터가 변경될 때마다 localStorage에 백업
+  useEffect(() => {
+    const data = getOnboardingData()
+    if (data.industry || data.stage || data.concerns?.length || data.goal || data.name) {
+      localStorage.setItem(ONBOARDING_BACKUP_KEY, JSON.stringify({
+        ...data,
+        sessionId: isAuthenticated ? undefined : sessionId,
+        timestamp: Date.now()
+      }))
+    }
+  }, [industry, stage, concerns, goal, name, sessionId, isAuthenticated, getOnboardingData])
 
   // 컴포넌트 마운트 시 세션 초기화
   useEffect(() => {
     const initSession = async () => {
+      setIsInitializing(true)
+      setSessionError(null)
+
       // 로그인 상태면 세션 필요 없음
-      if (isAuthenticated) return
+      if (isAuthenticated) {
+        setIsInitializing(false)
+        return
+      }
 
       // 이미 세션이 있으면 스킵
-      if (sessionId) return
+      if (sessionId) {
+        setIsInitializing(false)
+        return
+      }
 
       try {
         const res = await fetch('/api/sessions', { method: 'POST' })
-        if (res.ok) {
-          const data = await res.json()
-          setSessionId(data.sessionId)
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}))
+          throw new Error(errorData.error || '세션 생성에 실패했습니다')
         }
+        const data = await res.json()
+        setSessionId(data.sessionId)
       } catch (error) {
         console.error('Failed to create session:', error)
+        setSessionError(error instanceof Error ? error.message : '세션을 생성할 수 없습니다. 네트워크 연결을 확인해주세요.')
+      } finally {
+        setIsInitializing(false)
       }
     }
 
@@ -177,6 +209,7 @@ export default function OnboardingPage() {
   const handleGenerateCurriculum = async () => {
     setIsGenerating(true)
     setIsSaving(true)
+    setSaveError(null)
 
     try {
       // 온보딩 데이터 저장
@@ -191,24 +224,31 @@ export default function OnboardingPage() {
       })
 
       if (!res.ok) {
-        throw new Error('Failed to save onboarding')
+        const errorData = await res.json().catch(() => ({}))
+        throw new Error(errorData.error || '온보딩 데이터 저장에 실패했습니다')
       }
 
       setCompleted(true)
       setIsSaving(false)
 
+      // localStorage 백업 삭제 (성공적으로 저장됨)
+      localStorage.removeItem(ONBOARDING_BACKUP_KEY)
+
       // 커리큘럼 생성 페이지로 이동
       setTimeout(() => {
         router.push('/curriculum/generating')
-      }, 2000)
+      }, 1500)
     } catch (error) {
       console.error('Onboarding save error:', error)
       setIsSaving(false)
-      // 에러가 나도 일단 진행 (프로토타입)
-      setTimeout(() => {
-        router.push('/curriculum/generating')
-      }, 2000)
+      setIsGenerating(false)
+      setSaveError(error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다')
     }
+  }
+
+  const handleRetry = () => {
+    setSaveError(null)
+    handleGenerateCurriculum()
   }
 
   const isNextDisabled = () => {
@@ -229,6 +269,113 @@ export default function OnboardingPage() {
       case 'goal': return goal
       default: return ''
     }
+  }
+
+  // 초기화 중 로딩 화면
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-accent-purple border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-white/50">준비 중...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // 세션 생성 에러 화면
+  if (sessionError) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4">
+        <div className="text-center max-w-md">
+          {/* Error Icon */}
+          <div className="relative w-24 h-24 mx-auto mb-8">
+            <div className="absolute inset-0 rounded-full bg-orange-500/20" />
+            <div className="absolute inset-2 rounded-full bg-[#0a0a0a] flex items-center justify-center">
+              <svg className="w-12 h-12 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
+
+          <h2 className="text-2xl font-bold text-white mb-3">
+            세션을 시작할 수 없습니다
+          </h2>
+
+          <p className="text-white/60 mb-6">
+            {sessionError}
+          </p>
+
+          <div className="space-y-3">
+            <button
+              onClick={() => window.location.reload()}
+              className="w-full py-4 rounded-xl font-semibold text-lg bg-gradient-to-r from-accent-purple to-primary text-white hover:shadow-[0_0_30px_rgba(147,97,253,0.4)] transition-all"
+            >
+              다시 시도
+            </button>
+            <button
+              onClick={() => router.push('/login')}
+              className="w-full py-4 rounded-xl font-semibold text-lg bg-white/5 text-white/60 hover:bg-white/10 transition-all"
+            >
+              로그인하기
+            </button>
+          </div>
+
+          <p className="mt-6 text-xs text-white/30">
+            로그인하시면 세션 없이도 진행할 수 있습니다
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  // 에러 발생 시 에러 화면 표시
+  if (saveError) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4">
+        <div className="text-center max-w-md">
+          {/* Error Icon */}
+          <div className="relative w-24 h-24 mx-auto mb-8">
+            <div className="absolute inset-0 rounded-full bg-red-500/20" />
+            <div className="absolute inset-2 rounded-full bg-[#0a0a0a] flex items-center justify-center">
+              <svg className="w-12 h-12 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+          </div>
+
+          <h2 className="text-2xl font-bold text-white mb-3">
+            오류가 발생했습니다
+          </h2>
+
+          <p className="text-white/60 mb-6">
+            {saveError}
+          </p>
+
+          <div className="space-y-3">
+            <button
+              onClick={handleRetry}
+              className="w-full py-4 rounded-xl font-semibold text-lg bg-gradient-to-r from-accent-purple to-primary text-white hover:shadow-[0_0_30px_rgba(147,97,253,0.4)] transition-all"
+            >
+              다시 시도
+            </button>
+            <button
+              onClick={() => {
+                setSaveError(null)
+                setCurrentStep(0)
+              }}
+              className="w-full py-4 rounded-xl font-semibold text-lg bg-white/5 text-white/60 hover:bg-white/10 transition-all"
+            >
+              처음부터 다시하기
+            </button>
+          </div>
+
+          <p className="mt-6 text-xs text-white/30">
+            문제가 계속되면 support@mate.com으로 문의해주세요
+          </p>
+        </div>
+      </div>
+    )
   }
 
   if (isGenerating) {

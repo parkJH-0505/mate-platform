@@ -105,7 +105,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               disabled={disabled || !message.trim()}
               className={`
                 absolute right-2 bottom-2
-                w-8 h-8 rounded-lg
+                w-10 h-10 rounded-lg
                 flex items-center justify-center
                 transition-all
                 ${message.trim() && !disabled
@@ -114,7 +114,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                 }
               `}
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
