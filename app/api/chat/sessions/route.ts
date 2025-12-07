@@ -62,10 +62,14 @@ export async function GET(request: NextRequest) {
       success: true,
       sessions: sessionsWithLastMessage,
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching chat sessions:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch chat sessions' },
+      {
+        error: 'Failed to fetch chat sessions',
+        details: error?.message || String(error),
+        code: error?.code
+      },
       { status: 500 }
     )
   }
@@ -107,16 +111,23 @@ export async function POST(request: NextRequest) {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) {
+      console.error('Supabase insert error:', error)
+      throw error
+    }
 
     return NextResponse.json({
       success: true,
       session,
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating chat session:', error)
     return NextResponse.json(
-      { error: 'Failed to create chat session' },
+      {
+        error: 'Failed to create chat session',
+        details: error?.message || String(error),
+        code: error?.code
+      },
       { status: 500 }
     )
   }
