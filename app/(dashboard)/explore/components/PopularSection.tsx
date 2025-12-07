@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import Link from 'next/link'
 
 interface PopularContent {
   id: string
@@ -24,7 +23,7 @@ const TYPE_ICONS: Record<string, string> = {
   audio: '🎧'
 }
 
-export function PopularSection() {
+export function PopularSection({ onOpenContent }: { onOpenContent?: (contentId: string) => void }) {
   const [popular, setPopular] = useState<PopularContent[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
@@ -67,7 +66,12 @@ export function PopularSection() {
       <div className="relative">
         <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide -mx-4 px-4">
           {popular.map((content, index) => (
-            <PopularCard key={content.id} content={content} index={index} />
+            <PopularCard
+              key={content.id}
+              content={content}
+              index={index}
+              onOpen={onOpenContent}
+            />
           ))}
         </div>
       </div>
@@ -75,8 +79,22 @@ export function PopularSection() {
   )
 }
 
-function PopularCard({ content, index }: { content: PopularContent; index: number }) {
+function PopularCard({
+  content,
+  index,
+  onOpen
+}: {
+  content: PopularContent
+  index: number
+  onOpen?: (contentId: string) => void
+}) {
   const duration = content.duration_minutes || 5
+
+  const handleClick = () => {
+    if (onOpen) {
+      onOpen(content.id)
+    }
+  }
 
   return (
     <motion.div
@@ -85,10 +103,10 @@ function PopularCard({ content, index }: { content: PopularContent; index: numbe
       transition={{ delay: index * 0.1 }}
       className="flex-shrink-0 w-64"
     >
-      <Link
-        href={`/content/${content.id}`}
+      <button
+        onClick={handleClick}
         className="
-          block rounded-xl overflow-hidden
+          w-full block rounded-xl overflow-hidden text-left
           bg-white/[0.05] border-2 border-white/[0.12]
           hover:border-white/[0.2] hover:bg-white/[0.08]
           transition-all group
@@ -145,7 +163,7 @@ function PopularCard({ content, index }: { content: PopularContent; index: numbe
             </span>
           </div>
         </div>
-      </Link>
+      </button>
     </motion.div>
   )
 }

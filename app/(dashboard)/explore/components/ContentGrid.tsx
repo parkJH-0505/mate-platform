@@ -21,9 +21,10 @@ interface Props {
   isLoading: boolean
   hasMore: boolean
   onLoadMore: () => void
+  onOpenContent?: (contentId: string) => void
 }
 
-export function ContentGrid({ contents, isLoading, hasMore, onLoadMore }: Props) {
+export function ContentGrid({ contents, isLoading, hasMore, onLoadMore, onOpenContent }: Props) {
   if (isLoading && contents.length === 0) {
     return <GridSkeleton />
   }
@@ -42,7 +43,12 @@ export function ContentGrid({ contents, isLoading, hasMore, onLoadMore }: Props)
     <div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {contents.map((content, index) => (
-          <ContentCard key={content.id} content={content} index={index} />
+          <ContentCard
+            key={content.id}
+            content={content}
+            index={index}
+            onOpen={onOpenContent}
+          />
         ))}
       </div>
 

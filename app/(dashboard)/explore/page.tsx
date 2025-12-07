@@ -5,6 +5,7 @@ import { ExploreHeader } from './components/ExploreHeader'
 import { CategoryTabs } from './components/CategoryTabs'
 import { ContentGrid } from './components/ContentGrid'
 import { PopularSection } from './components/PopularSection'
+import { ContentDetailModal } from '../components/ContentDetailModal'
 
 interface Filters {
   category: string | null
@@ -50,6 +51,10 @@ export default function ExplorePage() {
     hasMore: false,
     total: 0
   })
+
+  // 모달 state
+  const [selectedContentId, setSelectedContentId] = useState<string | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   const fetchContents = useCallback(async (page = 1) => {
     setIsLoading(true)
@@ -105,6 +110,16 @@ export default function ExplorePage() {
     }
   }
 
+  const handleOpenContent = (contentId: string) => {
+    setSelectedContentId(contentId)
+    setIsModalOpen(true)
+  }
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false)
+    setSelectedContentId(null)
+  }
+
   const hasActiveFilters = filters.category || filters.level || filters.contentType || filters.search
 
   return (
@@ -120,7 +135,7 @@ export default function ExplorePage() {
       <main className="max-w-6xl mx-auto px-4 py-6">
         {/* 필터가 없을 때만 인기 콘텐츠 표시 */}
         {!hasActiveFilters && (
-          <PopularSection />
+          <PopularSection onOpenContent={handleOpenContent} />
         )}
 
         {/* 카테고리 탭 */}
@@ -142,8 +157,18 @@ export default function ExplorePage() {
           isLoading={isLoading}
           hasMore={pagination.hasMore}
           onLoadMore={handleLoadMore}
+          onOpenContent={handleOpenContent}
         />
       </main>
+
+      {/* Content Detail Modal */}
+      {selectedContentId && (
+        <ContentDetailModal
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          contentId={selectedContentId}
+        />
+      )}
     </div>
   )
 }
