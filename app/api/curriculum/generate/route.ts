@@ -9,13 +9,22 @@ import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
   try {
+    // OpenAI API 키 확인
+    if (!process.env.OPENAI_API_KEY) {
+      console.error('OPENAI_API_KEY is not set')
+      return NextResponse.json(
+        { error: 'OpenAI API key not configured', code: 'OPENAI_NOT_CONFIGURED' },
+        { status: 500 }
+      )
+    }
+
     const body = await request.json()
     const { industry, stage, concerns, goal, userName, sessionId } = body
 
     // 필수 필드 검증
     if (!industry || !stage || !goal) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'Missing required fields', code: 'MISSING_FIELDS' },
         { status: 400 }
       )
     }
@@ -26,7 +35,16 @@ export async function POST(request: Request) {
     const { data: { user } } = await supabase.auth.getUser()
 
     // OpenAI API 호출
-    const openai = getOpenAI()
+    let openai
+    try {
+      openai = getOpenAI()
+    } catch (err) {
+      console.error('Failed to initialize OpenAI:', err)
+      return NextResponse.json(
+        { error: 'Failed to initialize AI service', code: 'OPENAI_INIT_FAILED' },
+        { status: 500 }
+      )
+    }
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
@@ -127,10 +145,45 @@ export async function POST(request: Request) {
       }
     })
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Curriculum generation error:', error)
+
+    // OpenAI API 에러
+    if (error?.status === 401 || error?.code === 'invalid_api_key') {
+      return NextResponse.json(
+        { error: 'Invalid OpenAI API key', code: 'OPENAI_INVALID_KEY' },
+        { status: 500 }
+      )
+    }
+
+    if (error?.status === 429) {
+      return NextResponse.json(
+        { error: 'API rate limit exceeded. Please try again later.', code: 'RATE_LIMIT' },
+        { status: 429 }
+      )
+    }
+
+    // Supabase 에러
+    if (error?.code === '42P01') {
+      return NextResponse.json(
+        { error: 'Database table not found. Migration needed.', code: 'DB_TABLE_MISSING' },
+        { status: 500 }
+      )
+    }
+
+    if (error?.code === '42501') {
+      return NextResponse.json(
+        { error: 'Database permission denied. Check RLS policies.', code: 'DB_PERMISSION_DENIED' },
+        { status: 500 }
+      )
+    }
+
     return NextResponse.json(
-      { error: 'Failed to generate curriculum' },
+      {
+        error: 'Failed to generate curriculum',
+        code: 'UNKNOWN_ERROR',
+        details: process.env.NODE_ENV === 'development' ? error?.message : undefined
+      },
       { status: 500 }
     )
   }
