@@ -391,12 +391,55 @@ export default function DashboardPage() {
           )}
         </div>
       </motion.div>
+
+      {/* Gamification Section - Welcome 바로 다음 */}
+      {gamification && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="space-y-4"
+        >
+          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+            나의 성장
+            <span className="text-sm font-normal text-white/40">Growth</span>
+          </h3>
+
+          {/* Streak, Level, Goal - 3개 그리드 */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <StreakCard
+              current={gamification.streak.current}
+              longest={gamification.streak.longest}
+              weeklyActivity={gamification.streak.weeklyActivity}
+            />
+            <LevelProgress
+              level={gamification.level.level}
+              name={gamification.level.name}
+              icon={gamification.level.icon}
+              currentXP={gamification.level.currentXP}
+              nextLevelXP={gamification.level.nextLevelXP}
+              progress={gamification.level.progress}
+              totalXP={gamification.level.totalXP}
+            />
+            <WeeklyGoal
+              target={gamification.goal.target}
+              completed={gamification.goal.completed}
+              progress={gamification.goal.progress}
+              isAchieved={gamification.goal.isAchieved}
+              bonusXP={gamification.goal.bonusXP}
+              isNew={gamification.goal.isNew}
+              onSetGoal={handleSetGoal}
+            />
+          </div>
+        </motion.div>
+      )}
+
       {/* Today's Plan 카드 - 실행 기반 경험 */}
       {hasCurriculum && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
+          transition={{ delay: 0.08 }}
         >
           <TodaysPlanCard sessionId={sessionId} />
         </motion.div>
@@ -407,7 +450,7 @@ export default function DashboardPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.08 }}
+          transition={{ delay: 0.1 }}
           className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-6"
         >
           <div className="flex items-start justify-between mb-4">
@@ -480,7 +523,7 @@ export default function DashboardPage() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
+        transition={{ delay: 0.12 }}
         className="grid grid-cols-1 md:grid-cols-2 gap-4"
       >
         <WeeklyRecommendations sessionId={sessionId} />
@@ -513,54 +556,14 @@ export default function DashboardPage() {
         </motion.div>
       )}
 
-      {/* Gamification Section - 3개로 간소화 */}
-      {gamification && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-          className="space-y-4"
-        >
-          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-            나의 성장
-            <span className="text-sm font-normal text-white/40">Growth</span>
-          </h3>
 
-          {/* Streak, Level, Goal - 3개 그리드 */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <StreakCard
-              current={gamification.streak.current}
-              longest={gamification.streak.longest}
-              weeklyActivity={gamification.streak.weeklyActivity}
-            />
-            <LevelProgress
-              level={gamification.level.level}
-              name={gamification.level.name}
-              icon={gamification.level.icon}
-              currentXP={gamification.level.currentXP}
-              nextLevelXP={gamification.level.nextLevelXP}
-              progress={gamification.level.progress}
-              totalXP={gamification.level.totalXP}
-            />
-            <WeeklyGoal
-              target={gamification.goal.target}
-              completed={gamification.goal.completed}
-              progress={gamification.goal.progress}
-              isAchieved={gamification.goal.isAchieved}
-              bonusXP={gamification.goal.bonusXP}
-              isNew={gamification.goal.isNew}
-              onSetGoal={handleSetGoal}
-            />
-          </div>
-        </motion.div>
-      )}
 
       {/* 🏆 성취 & 배지 통합 섹션 */}
       {gamification && hasCurriculum && dashboard?.currentCurriculum && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.18 }}
+          transition={{ delay: 0.15 }}
           className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-6"
         >
           <div className="flex items-center justify-between mb-4">
