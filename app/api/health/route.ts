@@ -60,9 +60,7 @@ export async function GET() {
   }
 
   // 전체 상태 계산
-  const hasErrors = Object.values(checks).some(
-    c => c.status === 'error' || (c.status === 'missing' && !c.message?.includes('선택'))
-  )
+  const hasErrors = Object.values(checks).some(c => c.status === 'error')
   const hasCriticalMissing = !process.env.OPENAI_API_KEY || !process.env.NEXT_PUBLIC_SUPABASE_URL
 
   return NextResponse.json({
