@@ -9,6 +9,57 @@ import { useAuth } from '@/hooks/useAuth'
 // 온보딩 데이터를 localStorage에 백업 (새로고침 대비)
 const ONBOARDING_BACKUP_KEY = 'mate_onboarding_backup'
 
+// 산업별 라벨 매핑
+const INDUSTRY_LABELS: Record<string, string> = {
+  'tech': 'IT/소프트웨어',
+  'ecommerce': '이커머스/커머스',
+  'fnb': 'F&B/요식업',
+  'content': '콘텐츠/미디어',
+  'education': '교육/에듀테크',
+  'health': '헬스케어/바이오',
+  'finance': '핀테크/금융',
+  'other': '기타',
+}
+
+// 단계별 라벨 매핑
+const STAGE_LABELS: Record<string, string> = {
+  'idea': '아이디어 단계',
+  'validation': 'PMF 검증 중',
+  'mvp': 'MVP 개발/출시',
+  'growth': '초기 성장',
+  'scale': '스케일업',
+}
+
+// 고민별 라벨 매핑
+const CONCERN_LABELS: Record<string, string> = {
+  'idea-validation': '아이디어 검증',
+  'customer-discovery': '고객 발굴',
+  'product-development': '제품 개발',
+  'marketing': '마케팅/홍보',
+  'sales': '영업/세일즈',
+  'funding': '투자 유치',
+  'team-building': '팀 빌딩',
+  'legal': '법률/행정',
+}
+
+// 목표별 라벨 매핑
+const GOAL_LABELS: Record<string, string> = {
+  'validate': '아이디어 검증 완료',
+  'launch': 'MVP 출시',
+  'first-customer': '첫 유료 고객 확보',
+  'revenue-growth': '매출 성장',
+  'funding': '투자 유치',
+}
+
+// 단계별 MATE 진단 메시지
+const STAGE_DIAGNOSIS: Record<string, string> = {
+  'idea': '아이디어 단계에서는 "완벽한 제품"보다 "검증"이 먼저예요. 고객의 진짜 문제를 찾는 것부터 시작합니다.',
+  'validation': 'PMF 검증 중이시군요! 지금은 "많이 만들기"보다 "빨리 배우기"가 핵심이에요. 고객 반응에 집중하세요.',
+  'mvp': 'MVP 단계에서는 "완성도"보다 "학습 속도"가 중요해요. 빠르게 출시하고, 빠르게 개선하세요.',
+  'growth': '초기 성장 단계! 이제 "재현 가능한 성장 공식"을 찾을 때예요. 무엇이 효과가 있는지 데이터로 확인하세요.',
+  'scale': '스케일업 단계시군요! 이제 "시스템화"가 핵심이에요. 반복 가능한 프로세스를 만드세요.',
+}
+
 // 온보딩 스텝 정의
 const STEPS = [
   {
@@ -69,9 +120,15 @@ const STEPS = [
   },
   {
     id: 'name',
-    title: '마지막으로, 이름을 알려주세요',
+    title: '이름을 알려주세요',
     subtitle: '개인화된 경험을 위해 필요합니다',
     type: 'input'
+  },
+  {
+    id: 'summary',
+    title: '준비 완료!',
+    subtitle: '입력하신 정보를 확인해주세요',
+    type: 'summary'
   }
 ]
 
@@ -104,6 +161,7 @@ export default function OnboardingPage() {
   const [saveError, setSaveError] = useState<string | null>(null)
   const [sessionError, setSessionError] = useState<string | null>(null)
   const [isInitializing, setIsInitializing] = useState(true)
+  const [generatingStep, setGeneratingStep] = useState(0)
 
   // 온보딩 데이터가 변경될 때마다 localStorage에 백업
   useEffect(() => {
@@ -252,6 +310,7 @@ export default function OnboardingPage() {
   }
 
   const isNextDisabled = () => {
+    if (step.type === 'summary') return false // 요약 화면에서는 항상 진행 가능
     if (step.type === 'input') return !name.trim()
     if (step.multiSelect) return concerns.length === 0
     switch (step.id) {
@@ -378,32 +437,94 @@ export default function OnboardingPage() {
     )
   }
 
+  // 생성 단계별 메시지
+  const generatingSteps = [
+    { message: `${name}님의 상황을 분석하고 있어요...`, detail: `${INDUSTRY_LABELS[industry] || industry} 산업 트렌드 확인 중` },
+    { message: `${STAGE_LABELS[stage] || stage} 단계에 맞는 콘텐츠를 찾고 있어요...`, detail: '검증된 성공 패턴 매칭 중' },
+    { message: `${concerns.map(c => CONCERN_LABELS[c] || c).join(', ')} 해결 콘텐츠를 선별하고 있어요...`, detail: '87개 콘텐츠 중 최적 12개 선정' },
+    { message: `${name}님만의 로드맵을 구성하고 있어요...`, detail: '3주 실행 플랜 생성 중' },
+    { message: `${name}님의 로드맵이 완성되었습니다!`, detail: '' },
+  ]
+
+  // 생성 단계 자동 진행
+  useEffect(() => {
+    if (isGenerating && generatingStep < generatingSteps.length - 1) {
+      const timer = setTimeout(() => {
+        setGeneratingStep(prev => prev + 1)
+      }, 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [isGenerating, generatingStep, generatingSteps.length])
+
   if (isGenerating) {
+    const currentGeneratingStep = generatingSteps[generatingStep]
+    const isComplete = generatingStep === generatingSteps.length - 1
+
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-        <div className="text-center">
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4">
+        <div className="text-center max-w-md">
           {/* Animated Logo */}
           <div className="relative w-24 h-24 mx-auto mb-8">
-            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-accent-purple to-primary animate-spin opacity-20" />
+            <div className={`absolute inset-0 rounded-full bg-gradient-to-r from-accent-purple to-primary ${isComplete ? '' : 'animate-spin'} opacity-20`} />
             <div className="absolute inset-2 rounded-full bg-[#0a0a0a] flex items-center justify-center">
-              <svg className="w-12 h-12 text-accent-purple animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-              </svg>
+              {isComplete ? (
+                <svg className="w-12 h-12 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                <svg className="w-12 h-12 text-accent-purple animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+              )}
             </div>
           </div>
 
-          <h2 className="text-2xl font-bold text-white mb-4">
-            {name}님을 위한 커리큘럼을<br />생성하고 있습니다
-          </h2>
+          {/* 메인 메시지 */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={generatingStep}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3 }}
+            >
+              <h2 className={`text-xl sm:text-2xl font-bold mb-3 ${isComplete ? 'text-green-400' : 'text-white'}`}>
+                {currentGeneratingStep.message}
+              </h2>
+              {currentGeneratingStep.detail && (
+                <p className="text-white/40 text-sm">
+                  {currentGeneratingStep.detail}
+                </p>
+              )}
+            </motion.div>
+          </AnimatePresence>
 
-          <div className="flex items-center justify-center gap-2 text-white/50">
-            <div className="w-2 h-2 rounded-full bg-accent-purple animate-bounce" style={{ animationDelay: '0ms' }} />
-            <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '150ms' }} />
-            <div className="w-2 h-2 rounded-full bg-accent-blue animate-bounce" style={{ animationDelay: '300ms' }} />
+          {/* 진행 표시 */}
+          <div className="mt-8">
+            <div className="flex justify-center gap-2 mb-4">
+              {generatingSteps.slice(0, -1).map((_, index) => (
+                <div
+                  key={index}
+                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                    index <= generatingStep
+                      ? 'bg-accent-purple'
+                      : 'bg-white/20'
+                  }`}
+                />
+              ))}
+            </div>
+
+            {!isComplete && (
+              <div className="flex items-center justify-center gap-2 text-white/50">
+                <div className="w-2 h-2 rounded-full bg-accent-purple animate-bounce" style={{ animationDelay: '0ms' }} />
+                <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '150ms' }} />
+                <div className="w-2 h-2 rounded-full bg-accent-blue animate-bounce" style={{ animationDelay: '300ms' }} />
+              </div>
+            )}
           </div>
 
-          {isSaving && (
-            <p className="mt-4 text-sm text-white/40">데이터 저장 중...</p>
+          {isSaving && !isComplete && (
+            <p className="mt-4 text-xs text-white/30">데이터 저장 중...</p>
           )}
         </div>
       </div>
@@ -476,8 +597,81 @@ export default function OnboardingPage() {
                 </p>
               </div>
 
-              {/* Options or Input */}
-              {step.type === 'input' ? (
+              {/* Options or Input or Summary */}
+              {step.type === 'summary' ? (
+                <div className="max-w-md mx-auto space-y-6">
+                  {/* 요약 카드 */}
+                  <div className="p-6 rounded-2xl bg-gradient-to-br from-accent-purple/10 to-primary/10 border border-accent-purple/20">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-r from-accent-purple to-primary flex items-center justify-center text-xl">
+                        {name.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold text-white">{name}님의 창업 여정</h3>
+                        <p className="text-sm text-white/50">MATE가 함께합니다</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5">
+                        <span className="text-xl">🏭</span>
+                        <div>
+                          <p className="text-xs text-white/40">산업</p>
+                          <p className="text-white font-medium">{INDUSTRY_LABELS[industry] || industry}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5">
+                        <span className="text-xl">📍</span>
+                        <div>
+                          <p className="text-xs text-white/40">현재 단계</p>
+                          <p className="text-white font-medium">{STAGE_LABELS[stage] || stage}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5">
+                        <span className="text-xl">🎯</span>
+                        <div>
+                          <p className="text-xs text-white/40">주요 고민</p>
+                          <p className="text-white font-medium">
+                            {concerns.map(c => CONCERN_LABELS[c] || c).join(', ')}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5">
+                        <span className="text-xl">🚀</span>
+                        <div>
+                          <p className="text-xs text-white/40">3개월 목표</p>
+                          <p className="text-white font-medium">{GOAL_LABELS[goal] || goal}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* MATE 진단 메시지 */}
+                  <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+                    <div className="flex gap-3">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-r from-accent-purple to-primary flex-shrink-0 flex items-center justify-center">
+                        <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-accent-purple mb-1">MATE의 한마디</p>
+                        <p className="text-sm text-white/70 leading-relaxed">
+                          {STAGE_DIAGNOSIS[stage] || '지금 단계에 맞는 최적의 커리큘럼을 준비해드릴게요.'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 통계 */}
+                  <p className="text-center text-xs text-white/30">
+                    2,847명이 비슷한 여정을 시작했어요
+                  </p>
+                </div>
+              ) : step.type === 'input' ? (
                 <div className="max-w-md mx-auto">
                   <input
                     type="text"
@@ -568,7 +762,7 @@ export default function OnboardingPage() {
               }
             `}
           >
-            {currentStep === STEPS.length - 1 ? '커리큘럼 생성하기' : '다음'}
+            {step.type === 'summary' ? '나만의 로드맵 생성하기' : '다음'}
           </button>
         </div>
       </footer>

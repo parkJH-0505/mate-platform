@@ -1,509 +1,491 @@
-# Sprint 2: 온보딩 백엔드 연동
+# Sprint 2: 온보딩 백엔드 연동 + Wow 경험 고도화
 
-> **목표:** 온보딩 데이터 저장 및 사용자 인증 시스템 구축
-> **기간:** -
-> **상태:** 계획 중
+> **목표:** 온보딩 데이터 저장 및 사용자 인증 시스템 구축 + 감정 루프 기반 Wow 경험 설계
+> **기간:** 2025-12-05 ~ 2025-12-07
+> **상태:** Phase 1~3 완료 ✅
 > **선행 조건:** Sprint 1 프로토타입 완료 (UI 구현됨)
 
 ---
 
-## 1. 스프린트 목표
+## 진행 상태 요약
 
-### 핵심 목표
-1. Supabase 연동 및 데이터베이스 스키마 구현
-2. 소셜 로그인 (Google/카카오) 구현
-3. 온보딩 데이터 저장 API 구현
-4. 비로그인 → 로그인 전환 시 데이터 마이그레이션
+### 완료된 작업 ✅
+- [x] Supabase 프로젝트 생성 및 연동
+- [x] 데이터베이스 스키마 구현 (users, anonymous_sessions, curriculums 등)
+- [x] Google 소셜 로그인 구현
+- [x] 이메일/비밀번호 로그인 구현
+- [x] 온보딩 데이터 저장 API 구현
+- [x] 비로그인 → 로그인 전환 시 데이터 마이그레이션
+- [x] 에러 핸들링 및 로딩 상태 UX
+- [x] 모바일 반응형 개선
 
-### 완료 정의
-- [ ] Supabase 프로젝트 생성 및 연동
-- [ ] 사용자 테이블 생성 (onboarding 데이터 포함)
-- [ ] Google/카카오 소셜 로그인 동작
-- [ ] 온보딩 완료 시 데이터가 DB에 저장됨
-- [ ] 비로그인 상태에서도 온보딩 진행 가능
+### Wow 경험 고도화 완료 ✅
+- [x] **Phase 1: 온보딩 공감 경험 강화**
+  - 온보딩 마지막 단계 요약 화면 추가
+  - 커리큘럼 생성 연출 강화 (스토리텔링 로딩 애니메이션)
+  - MATE 진단 메시지 (단계별 맞춤 조언)
+- [x] **Phase 2: 커리큘럼 결과 + 오늘의 한 발**
+  - 개인화 요약 카드 컴포넌트
+  - 주차별 로드맵 시각화
+  - "오늘의 한 발" 카드 컴포넌트
+  - 플로팅 CTA 개선
+- [x] **Phase 3: 대시보드 진행감/정체성 루프**
+  - 개인화된 환영 섹션 (이니셜 아바타)
+  - 현재 위치 표시
+  - "오늘의 한 발" 카드 (대시보드 최상단)
+  - 마일스톤 카드 시스템 ("내가 해낸 것들")
+  - 정체성 격려 메시지
+
+### 남은 작업 📋
+- [ ] **Phase 4: AI 챗봇 맥락 연동** (선택)
 
 ---
 
-## 2. 기술 스택 결정
+## 🎯 Wow 경험 고도화 계획 (신규)
 
-### 2.1 인프라
-| 기술 | 용도 | 비고 |
+> **핵심 인사이트**: 커리큘럼 생성 자체가 Wow가 아니라, **감정 루프의 시작점**이 Wow다.
+
+### 설계 철학: 3가지 감정 루프
+
+| 루프 | 목표 감정 | 핵심 장치 |
+|------|-----------|-----------|
+| **안도 루프** | "그래도 오늘 이만큼은 했다" | 오늘의 한 발 플랜, 작은 완료 피드백 |
+| **진행감 루프** | "나는 여기서 계속 전진 중이다" | 실행/산출물 대시보드, 마일스톤 카드 |
+| **정체성 루프** | "나는 진지하게 창업하는 사람이다" | 나의 여정 타임라인, 성취 리포트 |
+
+### 기존 vs 개선 비교
+
+| 항목 | 기존 | 개선 |
 |------|------|------|
-| Supabase | Database + Auth | PostgreSQL 기반 |
-| Supabase Auth | 소셜 로그인 | Google, 카카오 지원 |
-
-### 2.2 프론트엔드 추가
-| 기술 | 용도 |
-|------|------|
-| @supabase/supabase-js | Supabase 클라이언트 |
-| @supabase/auth-helpers-nextjs | Next.js Auth 헬퍼 |
-| Zustand | 온보딩 상태 관리 (세션 저장) |
+| 온보딩 | 정보 수집 → 로딩 → 리스트 | **공감 → 진단 → 방향 제시 → 첫 행동** |
+| 커리큘럼 결과 | 콘텐츠 리스트 | **"왜 이 순서인지" + 오늘의 한 발** |
+| 대시보드 | 환영 + 진행률 | **실행 기반 진행감 + 정체성 타임라인** |
+| 성공 지표 | 시청 시간, 완강률 | **실행 횟수, 산출물, 마일스톤** |
 
 ---
 
-## 3. 데이터베이스 스키마
+## Phase 1: 온보딩 공감 경험 강화
 
-### 3.1 Users 테이블
-```sql
-CREATE TABLE users (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  email TEXT UNIQUE NOT NULL,
-  name TEXT,
-  profile_image TEXT,
+### 1.1 온보딩 질문 재설계
 
-  -- 온보딩 데이터
-  onboarding_industry TEXT,           -- IT/테크, 커머스, F&B 등
-  onboarding_stage TEXT,              -- 아이디어, 준비, MVP, 첫고객
-  onboarding_business_type TEXT,      -- B2C, B2B, B2B2C
-  onboarding_concerns TEXT[],         -- 고민 목록 (배열)
-  onboarding_goal TEXT,               -- 6개월 목표
-  onboarding_completed_at TIMESTAMPTZ,
-
-  -- 구독 정보
-  subscription_status TEXT DEFAULT 'free', -- free, active, canceled, expired
-  subscription_plan TEXT,                  -- monthly, yearly
-  subscription_start_date TIMESTAMPTZ,
-  subscription_end_date TIMESTAMPTZ,
-
-  -- 메타
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW(),
-  last_login_at TIMESTAMPTZ
-);
-
--- 인덱스
-CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_users_subscription_status ON users(subscription_status);
+**현재 플로우:**
+```
+산업 → 단계 → 고민 → 목표 → 이름
 ```
 
-### 3.2 Anonymous Sessions 테이블 (비로그인 온보딩용)
-```sql
-CREATE TABLE anonymous_sessions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  session_id TEXT UNIQUE NOT NULL,  -- 브라우저 세션 ID
+**개선 플로우:**
+```
+Step 1: 공감 (내 상황 인식)
+  - "지금 어떤 상태인가요?"
+  - 선택지가 내 머릿속 문장을 그대로 반영
 
-  -- 온보딩 데이터 (Users와 동일 구조)
-  onboarding_industry TEXT,
-  onboarding_stage TEXT,
-  onboarding_business_type TEXT,
-  onboarding_concerns TEXT[],
-  onboarding_goal TEXT,
-  onboarding_name TEXT,
+Step 2: 진단 (막힌 지점 구체화)
+  - "가장 막막한 부분은?"
+  - 산업/단계와 연결된 구체적 고민들
 
-  -- 메타
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  expires_at TIMESTAMPTZ DEFAULT NOW() + INTERVAL '7 days'
-);
+Step 3: 방향 제시 (기대감 조성)
+  - "지금 단계에서는 [X]가 먼저입니다"
+  - 개인화된 메시지로 신뢰 형성
 
--- 인덱스
-CREATE INDEX idx_anonymous_session_id ON anonymous_sessions(session_id);
+Step 4: 요약 + 생성
+  - 입력 정보 요약 카드
+  - "이 정보로 당신만의 로드맵을 만들게요"
 ```
 
----
-
-## 4. 태스크 목록
-
-### 4.1 Supabase 셋업 (Day 1)
-
-| # | 태스크 | 우선순위 | 상태 |
-|---|--------|----------|------|
-| 1.1 | Supabase 프로젝트 생성 | P0 | ⬜ |
-| 1.2 | 환경변수 설정 (.env.local) | P0 | ⬜ |
-| 1.3 | Supabase 클라이언트 라이브러리 설치 | P0 | ⬜ |
-| 1.4 | Supabase 클라이언트 초기화 설정 | P0 | ⬜ |
-| 1.5 | Users 테이블 생성 (SQL) | P0 | ⬜ |
-| 1.6 | Anonymous Sessions 테이블 생성 | P0 | ⬜ |
-| 1.7 | RLS (Row Level Security) 정책 설정 | P1 | ⬜ |
-
-### 4.2 소셜 로그인 구현 (Day 1-2)
-
-| # | 태스크 | 우선순위 | 상태 |
-|---|--------|----------|------|
-| 2.1 | Google OAuth 앱 생성 (Google Cloud Console) | P0 | ⬜ |
-| 2.2 | 카카오 OAuth 앱 생성 (Kakao Developers) | P0 | ⬜ |
-| 2.3 | Supabase Auth 설정 (Google, 카카오) | P0 | ⬜ |
-| 2.4 | NextAuth 또는 Supabase Auth 헬퍼 설정 | P0 | ⬜ |
-| 2.5 | 로그인 페이지 UI 생성 (/login) | P0 | ⬜ |
-| 2.6 | 로그인 버튼 컴포넌트 (Google, 카카오) | P0 | ⬜ |
-| 2.7 | 로그인 콜백 처리 (/auth/callback) | P0 | ⬜ |
-| 2.8 | 로그아웃 기능 | P1 | ⬜ |
-| 2.9 | 세션 상태 확인 훅 (useAuth) | P0 | ⬜ |
-
-### 4.3 온보딩 상태 관리 (Day 2)
-
-| # | 태스크 | 우선순위 | 상태 |
-|---|--------|----------|------|
-| 3.1 | Zustand 설치 | P0 | ⬜ |
-| 3.2 | onboardingStore 생성 | P0 | ⬜ |
-| 3.3 | 세션 스토리지 연동 (비로그인 유지) | P0 | ⬜ |
-| 3.4 | 기존 온보딩 페이지에 스토어 연동 | P0 | ⬜ |
-| 3.5 | 온보딩 진행 상태 복원 로직 | P1 | ⬜ |
-
-### 4.4 온보딩 API 구현 (Day 2-3)
-
-| # | 태스크 | 우선순위 | 상태 |
-|---|--------|----------|------|
-| 4.1 | API: 익명 세션 생성 (/api/sessions) | P0 | ⬜ |
-| 4.2 | API: 온보딩 데이터 저장 (/api/onboarding) | P0 | ⬜ |
-| 4.3 | API: 온보딩 데이터 조회 | P1 | ⬜ |
-| 4.4 | 온보딩 완료 시 API 호출 연동 | P0 | ⬜ |
-| 4.5 | 에러 핸들링 및 로딩 상태 | P1 | ⬜ |
-
-### 4.5 비로그인 → 로그인 마이그레이션 (Day 3)
-
-| # | 태스크 | 우선순위 | 상태 |
-|---|--------|----------|------|
-| 5.1 | 로그인 시 익명 세션 데이터 확인 | P0 | ⬜ |
-| 5.2 | 익명 → 사용자 데이터 마이그레이션 API | P0 | ⬜ |
-| 5.3 | 마이그레이션 후 익명 세션 삭제 | P1 | ⬜ |
-| 5.4 | 온보딩 재진입 시 기존 데이터 복원 | P1 | ⬜ |
-
-### 4.6 UI 개선 (Day 3)
-
-| # | 태스크 | 우선순위 | 상태 |
-|---|--------|----------|------|
-| 6.1 | 온보딩 완료 후 로그인 유도 화면 | P0 | ⬜ |
-| 6.2 | 커리큘럼 생성 전 로그인 체크 | P1 | ⬜ |
-| 6.3 | 헤더에 로그인 상태 표시 | P1 | ⬜ |
-| 6.4 | 로딩/에러 상태 UI | P1 | ⬜ |
-
----
-
-## 5. API 엔드포인트 설계
-
-### 5.1 인증 관련
+### 1.2 온보딩 마지막 단계 요약 화면
 
 ```
-POST /api/auth/login
-  - 소셜 로그인 시작 (리다이렉트)
-
-GET /api/auth/callback
-  - OAuth 콜백 처리
-
-POST /api/auth/logout
-  - 로그아웃
-
-GET /api/auth/me
-  - 현재 사용자 정보
+┌─────────────────────────────────────┐
+│  ✨ 준홍님의 창업 여정을 시작합니다   │
+│                                      │
+│  📍 현재 위치                        │
+│  • F&B · Pre-Seed 단계              │
+│  • 가장 큰 고민: 자금조달, 팀빌딩     │
+│  • 목표: 3개월 내 첫 투자유치        │
+│                                      │
+│  💡 MATE의 진단                      │
+│  "Pre-Seed 단계에서는 투자유치보다    │
+│   '검증된 비즈니스 모델'이 먼저예요.  │
+│   이 순서로 준비하면 투자 확률이      │
+│   3배 높아집니다."                   │
+│                                      │
+│  [🚀 나만의 로드맵 생성하기]         │
+│                                      │
+│  👥 2,847명이 비슷한 여정을 시작했어요│
+└─────────────────────────────────────┘
 ```
 
-### 5.2 세션 관련
+### 1.3 커리큘럼 생성 연출 강화
 
+**현재:** 단순 로딩 스피너
+
+**개선:** 분석 과정 스토리텔링
 ```
-POST /api/sessions
-  - 익명 세션 생성
-  - Response: { sessionId: string }
+Step 1: "준홍님의 상황을 분석하고 있어요..." (2초)
+        [F&B 산업 트렌드 확인 중]
 
-GET /api/sessions/:id
-  - 익명 세션 데이터 조회
+Step 2: "Pre-Seed 단계에 맞는 콘텐츠를 찾고 있어요..." (2초)
+        [검증된 성공 패턴 매칭 중]
 
-DELETE /api/sessions/:id
-  - 익명 세션 삭제
-```
+Step 3: "자금조달 고민 해결 콘텐츠를 선별하고 있어요..." (2초)
+        [87개 콘텐츠 중 최적 12개 선정]
 
-### 5.3 온보딩 관련
+Step 4: "준홍님만의 로드맵을 구성하고 있어요..." (2초)
+        [3주 실행 플랜 생성 중]
 
-```
-POST /api/onboarding
-  - 온보딩 데이터 저장
-  - Body: {
-      sessionId?: string,      // 비로그인 시
-      industry: string,
-      stage: string,
-      businessType?: string,
-      concerns: string[],
-      goal: string,
-      name: string
-    }
-
-GET /api/onboarding
-  - 현재 사용자 온보딩 데이터 조회
-
-PUT /api/onboarding
-  - 온보딩 데이터 업데이트
-```
-
-### 5.4 마이그레이션 관련
-
-```
-POST /api/onboarding/migrate
-  - 익명 세션 → 사용자 마이그레이션
-  - Body: { sessionId: string }
+→ 완료: "준홍님의 로드맵이 완성되었습니다!"
 ```
 
 ---
 
-## 6. 유저 플로우
+## Phase 2: 커리큘럼 결과 + 오늘의 한 발
 
-### 6.1 비로그인 → 온보딩 → 로그인
-
-```
-[랜딩 페이지]
-    ↓
-[CTA 클릭: "무료로 커리큘럼 받기"]
-    ↓
-[익명 세션 생성] ← sessionId를 localStorage에 저장
-    ↓
-[온보딩 Step 1-5]
-    ↓
-[온보딩 완료] ← 데이터를 anonymous_sessions에 저장
-    ↓
-[로그인 유도 화면]
-"커리큘럼을 저장하려면 로그인이 필요해요"
-[Google로 계속하기] [카카오로 계속하기]
-    ↓
-[로그인 성공]
-    ↓
-[익명 세션 → 사용자 마이그레이션]
-    ↓
-[커리큘럼 생성 화면으로 이동]
-```
-
-### 6.2 로그인 → 온보딩
+### 2.1 개인화 요약 카드
 
 ```
-[랜딩 페이지에서 로그인]
-    ↓
-[대시보드 또는 온보딩 체크]
-    ↓
-[온보딩 미완료 시]
-    ↓
-[온보딩 Step 1-5]
-    ↓
-[온보딩 완료] ← 데이터를 users 테이블에 직접 저장
-    ↓
-[커리큘럼 생성 화면으로 이동]
+┌─────────────────────────────────────┐
+│  🎯 준홍님의 3주 로드맵              │
+│                                      │
+│  F&B · Pre-Seed · 자금조달 중심      │
+│                                      │
+│  "투자 미팅 전, 반드시 준비해야 할   │
+│   5가지를 중심으로 구성했어요"       │
+│                                      │
+│  Week 1: 사업모델 검증               │
+│  Week 2: 투자유치 준비               │
+│  Week 3: IR 피칭 실전                │
+└─────────────────────────────────────┘
+```
+
+### 2.2 "왜 이 순서인지" 설명
+
+```
+1️⃣ 사업계획서 핵심 구조
+   └ "투자자가 3분 안에 보는 포인트예요.
+      F&B 87%가 이 단계에서 막힙니다."
+   📍 15분 · 템플릿 포함
+
+2️⃣ 초기 자금 조달 전략
+   └ "F&B는 초기 자금 구조가 핵심이에요.
+      준홍님 단계에 딱 맞는 영상입니다."
+   📍 12분 · 체크리스트 포함
+
+3️⃣ 첫 IR 피칭 준비
+   └ "이건 Week 2에 보시면 돼요.
+      먼저 1, 2번을 끝내고 오세요."
+   🔒 Week 2 콘텐츠
+```
+
+### 2.3 ⭐ "오늘의 한 발" 카드 (핵심!)
+
+```
+┌─────────────────────────────────────┐
+│  👟 오늘의 한 발                     │
+│                                      │
+│  오늘 25분이면, 첫 발을 뗄 수 있어요 │
+│                                      │
+│  📺 학습: 사업계획서 핵심 구조 (15분) │
+│  ✍️ 실행: 내 사업 한 줄 정리 (10분)  │
+│      └ 템플릿으로 바로 시작하기       │
+│                                      │
+│  [오늘의 한 발 시작하기]             │
+│                                      │
+│  💬 "이 한 걸음으로,                 │
+│      투자유치 준비를 시작한 거예요"  │
+└─────────────────────────────────────┘
+```
+
+### 2.4 완료 후 피드백
+
+```
+┌─────────────────────────────────────┐
+│  🎉 오늘의 한 발 완료!               │
+│                                      │
+│  준홍님, 오늘 한 칸 전진했어요       │
+│                                      │
+│  ✅ 사업계획서 핵심 구조 학습        │
+│  ✅ 내 사업 한 줄 정리 완료          │
+│                                      │
+│  📊 이번 주 진행률: 1/5 완료         │
+│                                      │
+│  💡 "오늘 정리한 한 줄이            │
+│      투자자 앞에서의 첫 문장이 됩니다"│
+│                                      │
+│  [대시보드로 가기]                   │
+└─────────────────────────────────────┘
 ```
 
 ---
 
-## 7. 상세 구현 스펙
+## Phase 3: 대시보드 진행감/정체성 루프
 
-### 7.1 Supabase 클라이언트 설정
+### 3.1 대시보드 레이아웃 재설계
+
+```
+┌─────────────────────────────────────┐
+│  👋 준홍님, 오늘도 한 걸음!          │
+│                                      │
+│  📍 현재 위치: Week 1 - 사업모델 검증│
+│  🎯 이번 주 목표: 사업 한 줄 정리    │
+└─────────────────────────────────────┘
+
+┌─────────────────────────────────────┐
+│  👟 오늘의 한 발                     │
+│                                      │
+│  📺 고객 검증 인터뷰 방법 (12분)     │
+│  ✍️ 인터뷰 질문 3개 작성하기         │
+│                                      │
+│  [시작하기]                          │
+└─────────────────────────────────────┘
+
+┌─────────────────────────────────────┐
+│  📊 이번 달 진행 현황                │
+│                                      │
+│  실행: 2회  │  산출물: 1개  │ 학습: 5개│
+│  ━━━━━━━━━   ━━━━━━━━━━━   ━━━━━━━━━ │
+│  지난달 +1   동일         -2        │
+└─────────────────────────────────────┘
+
+┌─────────────────────────────────────┐
+│  🏆 내가 해낸 것들                   │
+│                                      │
+│  ✅ 사업 아이디어 정리               │
+│  ✅ 첫 고객 인터뷰 완료              │
+│  ⬜ 사업계획서 1차 작성 (진행중)     │
+│  🔒 첫 지원사업 제출                 │
+│                                      │
+│  [전체 보기]                         │
+└─────────────────────────────────────┘
+```
+
+### 3.2 나의 여정 타임라인
+
+```
+┌─────────────────────────────────────┐
+│  📅 준홍님의 창업 여정               │
+│                                      │
+│  2025.12.07                          │
+│  └ MATE 시작, 로드맵 생성            │
+│                                      │
+│  2025.12.08                          │
+│  └ 사업 한 줄 정리 완료              │
+│    "F&B 구독 서비스로 직장인 점심 해결"│
+│                                      │
+│  2025.12.10                          │
+│  └ 첫 고객 인터뷰 3명 완료           │
+│    주요 인사이트: "가격보다 편의성"   │
+│                                      │
+│  📍 현재                             │
+│  └ 사업계획서 1차 작성 중            │
+│                                      │
+│  🔮 다음 마일스톤                    │
+│  └ 첫 지원사업 제출                  │
+└─────────────────────────────────────┘
+```
+
+### 3.3 마일스톤 카드 시스템
 
 ```typescript
-// lib/supabase/client.ts
-import { createBrowserClient } from '@supabase/ssr'
-
-export const createClient = () => {
-  return createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
-}
-```
-
-```typescript
-// lib/supabase/server.ts
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
-
-export const createClient = () => {
-  const cookieStore = cookies()
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll: () => cookieStore.getAll(),
-        setAll: (cookies) => {
-          cookies.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options)
-          })
-        }
-      }
-    }
-  )
-}
-```
-
-### 7.2 Zustand 온보딩 스토어
-
-```typescript
-// stores/onboardingStore.ts
-import { create } from 'zustand'
-import { persist, createJSONStorage } from 'zustand/middleware'
-
-interface OnboardingState {
-  // 데이터
-  industry: string
-  stage: string
-  businessType: string
-  concerns: string[]
-  goal: string
-  name: string
-
-  // 메타
-  currentStep: number
-  sessionId: string | null
-
-  // 액션
-  setIndustry: (industry: string) => void
-  setStage: (stage: string) => void
-  setBusinessType: (type: string) => void
-  setConcerns: (concerns: string[]) => void
-  setGoal: (goal: string) => void
-  setName: (name: string) => void
-  setCurrentStep: (step: number) => void
-  setSessionId: (id: string) => void
-  reset: () => void
-
-  // 유틸
-  getOnboardingData: () => OnboardingData
-}
-
-export const useOnboardingStore = create<OnboardingState>()(
-  persist(
-    (set, get) => ({
-      industry: '',
-      stage: '',
-      businessType: '',
-      concerns: [],
-      goal: '',
-      name: '',
-      currentStep: 0,
-      sessionId: null,
-
-      setIndustry: (industry) => set({ industry }),
-      setStage: (stage) => set({ stage }),
-      setBusinessType: (type) => set({ businessType: type }),
-      setConcerns: (concerns) => set({ concerns }),
-      setGoal: (goal) => set({ goal }),
-      setName: (name) => set({ name }),
-      setCurrentStep: (step) => set({ currentStep: step }),
-      setSessionId: (id) => set({ sessionId: id }),
-      reset: () => set({
-        industry: '',
-        stage: '',
-        businessType: '',
-        concerns: [],
-        goal: '',
-        name: '',
-        currentStep: 0,
-      }),
-
-      getOnboardingData: () => ({
-        industry: get().industry,
-        stage: get().stage,
-        businessType: get().businessType,
-        concerns: get().concerns,
-        goal: get().goal,
-        name: get().name,
-      })
-    }),
-    {
-      name: 'mate-onboarding',
-      storage: createJSONStorage(() => sessionStorage),
-    }
-  )
-)
-```
-
-### 7.3 로그인 페이지 컴포넌트
-
-```typescript
-// app/login/page.tsx
-'use client'
-
-import { createClient } from '@/lib/supabase/client'
-
-export default function LoginPage() {
-  const supabase = createClient()
-
-  const handleGoogleLogin = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`
-      }
-    })
+// 마일스톤 정의
+const MILESTONES = [
+  {
+    id: 'idea_defined',
+    title: '사업 아이디어 정리',
+    description: '내 사업을 한 줄로 설명할 수 있게 됨',
+    icon: '💡',
+    trigger: 'oneline_template_completed'
+  },
+  {
+    id: 'first_interview',
+    title: '첫 고객 인터뷰',
+    description: '실제 고객의 목소리를 들어봄',
+    icon: '🎤',
+    trigger: 'interview_recorded'
+  },
+  {
+    id: 'business_plan_v1',
+    title: '사업계획서 1차 완성',
+    description: 'IR용 기본 구조 완성',
+    icon: '📝',
+    trigger: 'bp_template_completed'
+  },
+  {
+    id: 'first_application',
+    title: '첫 지원사업 제출',
+    description: '정부지원사업 1건 제출 완료',
+    icon: '📬',
+    trigger: 'application_submitted'
+  },
+  {
+    id: 'first_revenue',
+    title: '첫 매출 달성',
+    description: '실제 고객에게 첫 결제 발생',
+    icon: '💰',
+    trigger: 'revenue_recorded'
   }
-
-  const handleKakaoLogin = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: 'kakao',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`
-      }
-    })
-  }
-
-  return (
-    // ... UI 구현
-  )
-}
+]
 ```
 
 ---
 
-## 8. 환경 변수
+## Phase 4: AI 챗봇 맥락 연동
 
-```env
-# .env.local
+### 4.1 온보딩 데이터 기반 첫 대화
 
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+```
+[첫 대화 시]
+AI: "준홍님, 안녕하세요!
+     F&B 창업 준비 중이시군요.
 
-# OAuth (Supabase 콘솔에서 설정)
-# Google: Google Cloud Console에서 OAuth 클라이언트 ID 생성
-# 카카오: Kakao Developers에서 앱 생성
+     자금조달이 고민이시라고 하셨는데,
+     혹시 구체적으로 어떤 부분이 막히세요?
+
+     • 정부지원사업 찾기
+     • 투자유치 준비
+     • 초기 자금 계획
+     • 기타 질문"
+```
+
+### 4.2 불안 → 행동 전환 대화
+
+```
+[유저: "요즘 너무 막막해요. 망하면 어쩌죠?"]
+
+AI: "그 불안, 충분히 이해해요.
+
+     보통 이 단계에서 막막함은
+     '뭘 해야 할지 모르겠다'에서 오는 경우가 많아요.
+
+     준홍님 상황을 보면, 지금은
+     '사업모델 검증' 단계인데요.
+
+     오늘 딱 하나만 해볼까요?
+
+     👉 잠재 고객 3명에게
+        '이 서비스 있으면 쓸 것 같아요?'
+        물어보기
+
+     이거 하나만 해도,
+     오늘은 한 칸 간 거예요.
+
+     [고객 인터뷰 템플릿 보기]"
 ```
 
 ---
 
-## 9. 체크리스트
+## 태스크 목록
 
-### Day 1 체크리스트
-- [ ] Supabase 프로젝트 생성
-- [ ] 환경변수 설정
-- [ ] 라이브러리 설치
-- [ ] 데이터베이스 테이블 생성
-- [ ] Google OAuth 앱 생성
-- [ ] 카카오 OAuth 앱 생성
-- [ ] Supabase Auth 설정
+### Phase 1: 온보딩 공감 경험 ✅ 완료
 
-### Day 2 체크리스트
-- [ ] 로그인 페이지 UI
-- [ ] 소셜 로그인 동작 확인
-- [ ] 세션 상태 확인 훅
-- [ ] Zustand 스토어 생성
-- [ ] 온보딩 페이지에 스토어 연동
-- [ ] 익명 세션 API
+| # | 태스크 | 우선순위 | 상태 |
+|---|--------|----------|------|
+| 1.1 | 온보딩 마지막 단계 요약 화면 추가 | P0 | ✅ |
+| 1.2 | 커리큘럼 생성 연출 강화 (스토리텔링 로딩) | P0 | ✅ |
+| 1.3 | MATE 진단 메시지 (단계별 맞춤 조언) | P1 | ✅ |
 
-### Day 3 체크리스트
-- [ ] 온보딩 데이터 저장 API
-- [ ] 온보딩 완료 시 API 호출
-- [ ] 비로그인 → 로그인 마이그레이션
-- [ ] 온보딩 완료 후 로그인 유도 화면
-- [ ] 전체 플로우 테스트
-- [ ] 에러 핸들링
+### Phase 2: 커리큘럼 결과 + 오늘의 한 발 ✅ 완료
 
----
+| # | 태스크 | 우선순위 | 상태 |
+|---|--------|----------|------|
+| 2.1 | 개인화 요약 카드 컴포넌트 | P0 | ✅ |
+| 2.2 | 주차별 로드맵 시각화 | P0 | ✅ |
+| 2.3 | "오늘의 한 발" 카드 컴포넌트 | P0 | ✅ |
+| 2.4 | 플로팅 CTA 개선 | P1 | ✅ |
 
-## 10. 리스크 및 대응
+### Phase 3: 대시보드 개선 ✅ 완료
 
-| 리스크 | 영향 | 대응 |
-|--------|------|------|
-| OAuth 설정 복잡 | 지연 | Supabase 문서 참조, 테스트 환경 먼저 구축 |
-| 카카오 로그인 검수 | 지연 | 개발 단계에서는 테스터 등록으로 진행 |
-| 세션 데이터 손실 | UX 저하 | localStorage/sessionStorage 이중 저장 |
-| DB 스키마 변경 | 마이그레이션 필요 | 초기에 충분히 설계, 변경 최소화 |
+| # | 태스크 | 우선순위 | 상태 |
+|---|--------|----------|------|
+| 3.1 | 개인화된 환영 섹션 (이니셜 아바타) | P0 | ✅ |
+| 3.2 | 현재 위치 표시 | P0 | ✅ |
+| 3.3 | "오늘의 한 발" 카드 (대시보드 최상단) | P0 | ✅ |
+| 3.4 | 마일스톤 카드 시스템 ("내가 해낸 것들") | P1 | ✅ |
+| 3.5 | 정체성 격려 메시지 | P2 | ✅ |
 
----
+### Phase 4: AI 챗봇 맥락 연동 (선택, 미구현)
 
-## 11. 다음 스프린트 연결
-
-Sprint 2 완료 후 → **Sprint 3: AI 커리큘럼 생성**
-
-Sprint 3 준비사항:
-- OpenAI API 연동
-- 커리큘럼 생성 프롬프트 설계
-- 커리큘럼 DB 스키마
-- 커리큘럼 결과 화면 (현재 목업 → 실데이터)
+| # | 태스크 | 우선순위 | 상태 |
+|---|--------|----------|------|
+| 4.1 | 챗봇에 온보딩 데이터 전달 | P1 | ⬜ |
+| 4.2 | 맥락 기반 첫 대화 설계 | P1 | ⬜ |
+| 4.3 | 불안 → 행동 전환 프롬프트 | P2 | ⬜ |
 
 ---
 
-*작성일: 2025-12-06*
-*상태: 계획 중*
+## 성공 지표
+
+### 기존 지표 (참고용)
+- 온보딩 완료율
+- 시청 시간
+- DAU/MAU
+
+### 새로운 핵심 지표
+- **"오늘의 한 발" 완료율** - 안도 루프 작동 여부
+- **실행/산출물 생성 수** - 진행감 루프 작동 여부
+- **마일스톤 달성률** - 정체성 루프 작동 여부
+- **Day 7 리텐션** - 감정 루프 전체 효과
+
+---
+
+## 구현 우선순위 요약
+
+| 순위 | 항목 | 기대 효과 | 난이도 |
+|------|------|-----------|--------|
+| 1 | 커리큘럼 생성 연출 | ⭐⭐⭐⭐⭐ | 낮음 |
+| 2 | 온보딩 마지막 요약 | ⭐⭐⭐⭐⭐ | 낮음 |
+| 3 | "오늘의 한 발" 카드 | ⭐⭐⭐⭐⭐ | 중간 |
+| 4 | 개인화 요약 카드 | ⭐⭐⭐⭐ | 중간 |
+| 5 | 대시보드 재설계 | ⭐⭐⭐⭐ | 중간 |
+| 6 | 마일스톤 시스템 | ⭐⭐⭐ | 높음 |
+
+---
+
+## 기존 완료 항목 (참고)
+
+<details>
+<summary>Sprint 2 기존 계획 (대부분 완료)</summary>
+
+### Supabase 셋업 ✅
+- [x] Supabase 프로젝트 생성
+- [x] 환경변수 설정
+- [x] Supabase 클라이언트 설정
+- [x] 데이터베이스 테이블 생성
+
+### 소셜 로그인 구현 ✅
+- [x] Google OAuth 설정
+- [x] 이메일/비밀번호 로그인
+- [x] 로그인 페이지 UI
+- [x] 로그인 콜백 처리
+- [x] 세션 상태 확인 훅 (useAuth)
+
+### 온보딩 상태 관리 ✅
+- [x] Zustand 설치 및 스토어 생성
+- [x] 세션 스토리지 연동
+- [x] 온보딩 페이지에 스토어 연동
+
+### 온보딩 API 구현 ✅
+- [x] 익명 세션 생성 API
+- [x] 온보딩 데이터 저장 API
+- [x] 에러 핸들링 및 로딩 상태
+
+### 비로그인 → 로그인 마이그레이션 ✅
+- [x] 로그인 시 익명 세션 데이터 확인
+- [x] 익명 → 사용자 데이터 마이그레이션
+
+</details>
+
+---
+
+*최종 수정: 2025-12-07*
+*상태: Phase 1~3 완료 ✅ (Wow 경험 고도화 핵심 구현 완료)*
+
+---
+
+## 구현 파일 목록
+
+### 수정된 파일
+| 파일 | 변경 내용 |
+|------|-----------|
+| `app/onboarding/page.tsx` | 요약 화면, 스토리텔링 로딩, MATE 진단 메시지 추가 |
+| `app/curriculum/page.tsx` | 개인화 요약 카드, 로드맵 시각화, 오늘의 한 발 카드 |
+| `app/(dashboard)/dashboard/page.tsx` | 개인화 환영, 오늘의 한 발, 마일스톤 카드 |

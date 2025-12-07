@@ -232,7 +232,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 pb-24">
-      {/* Welcome Section */}
+      {/* Welcome Section - 개인화 강화 */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -241,7 +241,7 @@ export default function DashboardPage() {
         <div className="absolute top-0 right-0 w-32 h-32 bg-accent-purple/20 rounded-full blur-[60px]" />
 
         <div className="relative">
-          <div className="flex items-center gap-3 mb-2">
+          <div className="flex items-center gap-3 mb-3">
             {dashboard?.user?.avatar ? (
               <img
                 src={dashboard.user.avatar}
@@ -249,21 +249,34 @@ export default function DashboardPage() {
                 className="w-12 h-12 rounded-full"
               />
             ) : (
-              <div className="w-12 h-12 rounded-full bg-accent-purple/20 flex items-center justify-center text-xl">
-                👋
+              <div className="w-12 h-12 rounded-full bg-gradient-to-r from-accent-purple to-primary flex items-center justify-center text-xl text-white font-bold">
+                {userName.charAt(0).toUpperCase()}
               </div>
             )}
             <div>
               <h1 className="text-xl font-bold text-white">
-                안녕하세요, {userName}님!
+                {userName}님, 오늘도 한 걸음!
               </h1>
               <p className="text-sm text-white/50">
-                {hasCurriculum
-                  ? '오늘도 학습을 이어가볼까요?'
+                {hasCurriculum && dashboard?.currentCurriculum
+                  ? `${dashboard.currentCurriculum.industry} · ${dashboard.currentCurriculum.stage}`
                   : '맞춤 커리큘럼을 만들어보세요'}
               </p>
             </div>
           </div>
+
+          {/* 현재 위치 표시 */}
+          {hasCurriculum && dashboard?.currentCurriculum?.nextContent && (
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-white/40">현재 위치:</span>
+              <span className="px-2 py-0.5 rounded bg-accent-purple/20 text-accent-purple text-xs font-medium">
+                {dashboard.currentCurriculum.nextContent.weekNumber}주차
+              </span>
+              <span className="text-white/60">
+                {dashboard.currentCurriculum.nextContent.moduleTitle}
+              </span>
+            </div>
+          )}
 
           {/* Login prompt for anonymous users */}
           {!dashboard?.user?.isAuthenticated && sessionId && (
@@ -279,6 +292,52 @@ export default function DashboardPage() {
           )}
         </div>
       </motion.div>
+
+      {/* 오늘의 한 발 카드 - 최상단 고정 */}
+      {hasCurriculum && dashboard?.currentCurriculum?.nextContent && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="rounded-2xl bg-gradient-to-br from-green-500/10 to-accent-purple/10 border border-green-500/20 p-5"
+        >
+          <div className="flex items-center gap-2 text-green-400 mb-3">
+            <span className="text-xl">👟</span>
+            <span className="font-semibold">오늘의 한 발</span>
+            <span className="ml-auto text-xs text-white/40">
+              {dashboard.currentCurriculum.nextContent.duration}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 mb-4">
+            <div className="w-10 h-10 rounded-lg bg-accent-purple/20 flex items-center justify-center">
+              <svg className="w-5 h-5 text-accent-purple" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-white font-medium truncate">
+                {dashboard.currentCurriculum.nextContent.title}
+              </p>
+              <p className="text-xs text-white/40">
+                {dashboard.currentCurriculum.nextContent.weekNumber}주차 · {dashboard.currentCurriculum.nextContent.moduleTitle}
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={handleContinueLearning}
+            className="w-full py-3.5 rounded-xl bg-gradient-to-r from-accent-purple to-primary text-white font-semibold hover:shadow-[0_0_30px_rgba(147,97,253,0.3)] transition-all flex items-center justify-center gap-2"
+          >
+            <span className="text-lg">👟</span>
+            오늘의 한 발 시작하기
+          </button>
+
+          <p className="mt-2 text-center text-xs text-white/30">
+            이 한 걸음으로, {dashboard.currentCurriculum.goal} 목표에 가까워져요
+          </p>
+        </motion.div>
+      )}
 
       {/* Current Curriculum Card */}
       {hasCurriculum && dashboard?.currentCurriculum && (
@@ -427,11 +486,138 @@ export default function DashboardPage() {
         </motion.div>
       )}
 
+      {/* 마일스톤 카드 - 내가 해낸 것들 (정체성 루프) */}
+      {hasCurriculum && dashboard?.currentCurriculum && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-6"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+              <span>🏆</span>
+              내가 해낸 것들
+            </h3>
+            <span className="text-xs text-white/40">마일스톤</span>
+          </div>
+
+          <div className="space-y-3">
+            {/* 커리큘럼 생성 마일스톤 - 항상 달성 */}
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-accent-purple/10 border border-accent-purple/20">
+              <div className="w-10 h-10 rounded-full bg-accent-purple/30 flex items-center justify-center">
+                <span className="text-lg">🎯</span>
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-white">나만의 커리큘럼 생성</p>
+                <p className="text-xs text-white/50">AI가 분석한 맞춤 학습 경로를 시작했어요</p>
+              </div>
+              <svg className="w-5 h-5 text-accent-purple" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+            </div>
+
+            {/* 첫 콘텐츠 완료 마일스톤 */}
+            {(dashboard.stats?.totalContentsCompleted || 0) >= 1 ? (
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-green-500/10 border border-green-500/20">
+                <div className="w-10 h-10 rounded-full bg-green-500/30 flex items-center justify-center">
+                  <span className="text-lg">👟</span>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-white">첫 한 발</p>
+                  <p className="text-xs text-white/50">첫 번째 콘텐츠를 완료했어요!</p>
+                </div>
+                <svg className="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 opacity-50">
+                <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+                  <span className="text-lg">👟</span>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-white/70">첫 한 발</p>
+                  <p className="text-xs text-white/40">첫 번째 콘텐츠를 완료해보세요</p>
+                </div>
+                <div className="w-5 h-5 rounded-full border-2 border-white/20" />
+              </div>
+            )}
+
+            {/* 3개 완료 마일스톤 */}
+            {(dashboard.stats?.totalContentsCompleted || 0) >= 3 ? (
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
+                <div className="w-10 h-10 rounded-full bg-blue-500/30 flex items-center justify-center">
+                  <span className="text-lg">🔥</span>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-white">시동 걸림</p>
+                  <p className="text-xs text-white/50">3개 콘텐츠 완료! 꾸준함이 보여요</p>
+                </div>
+                <svg className="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 opacity-50">
+                <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+                  <span className="text-lg">🔥</span>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-white/70">시동 걸림</p>
+                  <p className="text-xs text-white/40">{dashboard.stats?.totalContentsCompleted || 0}/3 콘텐츠 완료</p>
+                </div>
+                <div className="w-5 h-5 rounded-full border-2 border-white/20" />
+              </div>
+            )}
+
+            {/* 1주차 완료 마일스톤 */}
+            {dashboard.currentCurriculum.progress >= 25 ? (
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
+                <div className="w-10 h-10 rounded-full bg-yellow-500/30 flex items-center justify-center">
+                  <span className="text-lg">⭐</span>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-white">1주차 정복</p>
+                  <p className="text-xs text-white/50">체계적인 학습의 시작!</p>
+                </div>
+                <svg className="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 opacity-50">
+                <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+                  <span className="text-lg">⭐</span>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-white/70">1주차 정복</p>
+                  <p className="text-xs text-white/40">1주차를 완료해보세요</p>
+                </div>
+                <div className="w-5 h-5 rounded-full border-2 border-white/20" />
+              </div>
+            )}
+          </div>
+
+          {/* 격려 메시지 */}
+          <div className="mt-4 pt-4 border-t border-white/5">
+            <p className="text-sm text-center text-white/60">
+              {(dashboard.stats?.totalContentsCompleted || 0) === 0
+                ? "첫 걸음을 떼면, 당신도 진지하게 창업을 준비하는 사람이에요 👟"
+                : (dashboard.stats?.totalContentsCompleted || 0) < 3
+                  ? "꾸준히 배우는 당신, 이미 상위 10% 예비 창업자예요 🌱"
+                  : "당신은 이미 진지하게 창업을 준비하는 사람이에요 🚀"
+              }
+            </p>
+          </div>
+        </motion.div>
+      )}
+
       {/* Stats Section */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
+        transition={{ delay: 0.25 }}
         className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4"
       >
         <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-4 sm:p-5 flex sm:flex-col items-center sm:items-center justify-between sm:justify-center gap-2 sm:gap-0 sm:text-center">
