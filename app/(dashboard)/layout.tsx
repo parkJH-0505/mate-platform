@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { DashboardHeader, BottomNavigation } from './components'
+import { FloatingChatButton } from './components/chat'
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -31,6 +32,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
       {/* Bottom Navigation */}
       <BottomNavigation />
+
+      {/* Floating AI Chat Button */}
+      <FloatingChatButton />
     </div>
   )
 }
