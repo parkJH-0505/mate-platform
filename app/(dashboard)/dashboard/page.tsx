@@ -391,7 +391,6 @@ export default function DashboardPage() {
           )}
         </div>
       </motion.div>
-
       {/* Today's Plan 카드 - 실행 기반 경험 */}
       {hasCurriculum && (
         <motion.div
@@ -403,69 +402,12 @@ export default function DashboardPage() {
         </motion.div>
       )}
 
-      {/* 스마트 피드 섹션 - 추천 & 활동 */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.08 }}
-        className="grid grid-cols-1 md:grid-cols-2 gap-4"
-      >
-        <WeeklyRecommendations sessionId={sessionId} />
-        <RecentActivity sessionId={sessionId} />
-      </motion.div>
-
-      {/* 오늘의 한 발 카드 - 최상단 고정 (기존) */}
-      {hasCurriculum && dashboard?.currentCurriculum?.nextContent && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
-          className="rounded-2xl bg-gradient-to-br from-green-500/10 to-accent-purple/10 border border-green-500/20 p-5"
-        >
-          <div className="flex items-center gap-2 text-green-400 mb-3">
-            <span className="text-xl">👟</span>
-            <span className="font-semibold">오늘의 한 발</span>
-            <span className="ml-auto text-xs text-white/40">
-              {dashboard.currentCurriculum.nextContent.duration}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 mb-4">
-            <div className="w-10 h-10 rounded-lg bg-accent-purple/20 flex items-center justify-center">
-              <svg className="w-5 h-5 text-accent-purple" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm text-white font-medium truncate">
-                {dashboard.currentCurriculum.nextContent.title}
-              </p>
-              <p className="text-xs text-white/40">
-                {dashboard.currentCurriculum.nextContent.weekNumber}주차 · {dashboard.currentCurriculum.nextContent.moduleTitle}
-              </p>
-            </div>
-          </div>
-
-          <button
-            onClick={handleContinueLearning}
-            className="w-full py-3.5 rounded-xl bg-gradient-to-r from-accent-purple to-primary text-white font-semibold hover:shadow-[0_0_30px_rgba(147,97,253,0.3)] transition-all flex items-center justify-center gap-2"
-          >
-            <span className="text-lg">👟</span>
-            오늘의 한 발 시작하기
-          </button>
-
-          <p className="mt-2 text-center text-xs text-white/30">
-            이 한 걸음으로, {dashboard.currentCurriculum.goal} 목표에 가까워져요
-          </p>
-        </motion.div>
-      )}
-
-      {/* Current Curriculum Card */}
+      {/* Current Curriculum Card - 간소화 */}
       {hasCurriculum && dashboard?.currentCurriculum && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
+          transition={{ delay: 0.08 }}
           className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-6"
         >
           <div className="flex items-start justify-between mb-4">
@@ -498,55 +440,52 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Next Content */}
-          {dashboard.currentCurriculum.nextContent && (
-            <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] mb-4">
-              <p className="text-xs text-white/40 mb-2">다음 학습</p>
-              <p className="text-sm font-medium text-white mb-1">
-                {dashboard.currentCurriculum.nextContent.title}
-              </p>
-              <p className="text-xs text-white/50">
-                {dashboard.currentCurriculum.nextContent.weekNumber}주차 · {dashboard.currentCurriculum.nextContent.moduleTitle}
-              </p>
-            </div>
-          )}
-
           {/* Actions */}
           <div className="flex gap-3 mb-4">
             <button
-              onClick={handleContinueLearning}
-              className="flex-1 py-3 rounded-xl bg-gradient-to-r from-accent-purple to-primary text-white font-semibold hover:shadow-[0_0_30px_rgba(147,97,253,0.3)] transition-all"
-            >
-              {dashboard.currentCurriculum.nextContent ? '학습 계속하기' : '커리큘럼 보기'}
-            </button>
-            <button
               onClick={handleViewCurriculum}
-              className="px-4 py-3 rounded-xl bg-white/5 text-white/70 hover:bg-white/10 transition-colors"
+              className="flex-1 py-3 rounded-xl bg-white/5 text-white/70 hover:bg-white/10 transition-colors font-medium"
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-              </svg>
+              전체 커리큘럼 보기
             </button>
           </div>
 
-          {/* Curriculum Accordion */}
+          {/* Curriculum Accordion - 기본 접힌 상태 */}
           {dashboard.currentCurriculum.modules && dashboard.currentCurriculum.modules.length > 0 && (
-            <div className="pt-4 border-t border-white/[0.06]">
-              <div className="flex items-center justify-between mb-3">
+            <details className="pt-4 border-t border-white/[0.06]">
+              <summary className="flex items-center justify-between cursor-pointer hover:text-white/80 transition-colors">
                 <h3 className="text-sm font-medium text-white/70">주차별 커리큘럼</h3>
-                <span className="text-xs text-white/40">
-                  {dashboard.currentCurriculum.modules.length}주 과정
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-white/40">
+                    {dashboard.currentCurriculum.modules.length}주 과정
+                  </span>
+                  <svg className="w-4 h-4 text-white/40 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </summary>
+              <div className="mt-3">
+                <CurriculumAccordion
+                  modules={dashboard.currentCurriculum.modules}
+                  currentWeek={dashboard.currentCurriculum.nextContent?.weekNumber || 1}
+                  completedContentIds={dashboard.currentCurriculum.completedContentIds || []}
+                />
               </div>
-              <CurriculumAccordion
-                modules={dashboard.currentCurriculum.modules}
-                currentWeek={dashboard.currentCurriculum.nextContent?.weekNumber || 1}
-                completedContentIds={dashboard.currentCurriculum.completedContentIds || []}
-              />
-            </div>
+            </details>
           )}
         </motion.div>
       )}
+
+      {/* 스마트 피드 섹션 - 추천 & 활동 */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="grid grid-cols-1 md:grid-cols-2 gap-4"
+      >
+        <WeeklyRecommendations sessionId={sessionId} />
+        <RecentActivity sessionId={sessionId} />
+      </motion.div>
 
       {/* No Curriculum - New User */}
       {!hasCurriculum && (
@@ -574,7 +513,7 @@ export default function DashboardPage() {
         </motion.div>
       )}
 
-      {/* Gamification Section */}
+      {/* Gamification Section - 3개로 간소화 */}
       {gamification && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -587,8 +526,8 @@ export default function DashboardPage() {
             <span className="text-sm font-normal text-white/40">Growth</span>
           </h3>
 
-          {/* Streak & Level Row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Streak, Level, Goal - 3개 그리드 */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <StreakCard
               current={gamification.streak.current}
               longest={gamification.streak.longest}
@@ -603,10 +542,6 @@ export default function DashboardPage() {
               progress={gamification.level.progress}
               totalXP={gamification.level.totalXP}
             />
-          </div>
-
-          {/* Goal & Badges Row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <WeeklyGoal
               target={gamification.goal.target}
               completed={gamification.goal.completed}
@@ -616,41 +551,74 @@ export default function DashboardPage() {
               isNew={gamification.goal.isNew}
               onSetGoal={handleSetGoal}
             />
-            <BadgeShowcase
-              badges={gamification.badges}
-              recentBadge={gamification.recentBadge}
-            />
           </div>
         </motion.div>
       )}
 
-      {/* 마일스톤 카드 - 내가 해낸 것들 (정체성 루프) */}
-      {hasCurriculum && dashboard?.currentCurriculum && (
+      {/* 🏆 성취 & 배지 통합 섹션 */}
+      {gamification && hasCurriculum && dashboard?.currentCurriculum && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
+          transition={{ delay: 0.18 }}
           className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-6"
         >
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-white flex items-center gap-2">
               <span>🏆</span>
-              내가 해낸 것들
+              성취 & 배지
             </h3>
-            <span className="text-xs text-white/40">마일스톤</span>
+            <span className="text-xs text-white/40">Achievements</span>
           </div>
 
-          <div className="space-y-3">
-            {/* 커리큘럼 생성 마일스톤 - 항상 달성 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* 최근 획득 배지 (큰 카드) */}
+            {gamification.recentBadge && (
+              <div className="md:col-span-2 p-4 rounded-xl bg-gradient-to-br from-yellow-500/10 to-orange-500/10 border border-yellow-500/20">
+                <div className="flex items-center gap-4">
+                  <div className={`
+                    w-16 h-16 rounded-full flex items-center justify-center text-3xl
+                    ${gamification.recentBadge.rarity === 'legendary' ? 'bg-gradient-to-br from-yellow-400/30 to-orange-500/30 animate-pulse' :
+                      gamification.recentBadge.rarity === 'epic' ? 'bg-purple-500/30' :
+                        gamification.recentBadge.rarity === 'rare' ? 'bg-blue-500/30' :
+                          'bg-gray-500/30'
+                    }
+                  `}>
+                    <span>{gamification.recentBadge.icon}</span>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-yellow-400 font-medium mb-1">최근 획득!</p>
+                    <p className="text-white font-semibold">{gamification.recentBadge.name}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className={`
+                        text-xs px-2 py-0.5 rounded-full
+                        ${gamification.recentBadge.rarity === 'legendary' ? 'bg-yellow-500/20 text-yellow-400' :
+                          gamification.recentBadge.rarity === 'epic' ? 'bg-purple-500/20 text-purple-400' :
+                            gamification.recentBadge.rarity === 'rare' ? 'bg-blue-500/20 text-blue-400' :
+                              'bg-gray-500/20 text-gray-400'
+                        }
+                      `}>
+                        {gamification.recentBadge.rarity === 'legendary' ? 'Legendary' :
+                          gamification.recentBadge.rarity === 'epic' ? 'Epic' :
+                            gamification.recentBadge.rarity === 'rare' ? 'Rare' : 'Common'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 마일스톤들 */}
+            {/* 커리큘럼 생성 마일스톤 */}
             <div className="flex items-center gap-3 p-3 rounded-xl bg-accent-purple/10 border border-accent-purple/20">
-              <div className="w-10 h-10 rounded-full bg-accent-purple/30 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-full bg-accent-purple/30 flex items-center justify-center shrink-0">
                 <span className="text-lg">🎯</span>
               </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-white">나만의 커리큘럼 생성</p>
-                <p className="text-xs text-white/50">AI가 분석한 맞춤 학습 경로를 시작했어요</p>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-white truncate">나만의 커리큘럼 생성</p>
+                <p className="text-xs text-white/50">맞춤 학습 경로 시작</p>
               </div>
-              <svg className="w-5 h-5 text-accent-purple" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-5 h-5 text-accent-purple shrink-0" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
               </svg>
             </div>
@@ -658,81 +626,81 @@ export default function DashboardPage() {
             {/* 첫 콘텐츠 완료 마일스톤 */}
             {(dashboard.stats?.totalContentsCompleted || 0) >= 1 ? (
               <div className="flex items-center gap-3 p-3 rounded-xl bg-green-500/10 border border-green-500/20">
-                <div className="w-10 h-10 rounded-full bg-green-500/30 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-green-500/30 flex items-center justify-center shrink-0">
                   <span className="text-lg">👟</span>
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-white">첫 한 발</p>
-                  <p className="text-xs text-white/50">첫 번째 콘텐츠를 완료했어요!</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-white truncate">첫 한 발</p>
+                  <p className="text-xs text-white/50">첫 번째 콘텐츠 완료!</p>
                 </div>
-                <svg className="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                <svg className="w-5 h-5 text-green-400 shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
               </div>
             ) : (
               <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 opacity-50">
-                <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center shrink-0">
                   <span className="text-lg">👟</span>
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-white/70">첫 한 발</p>
-                  <p className="text-xs text-white/40">첫 번째 콘텐츠를 완료해보세요</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-white/70 truncate">첫 한 발</p>
+                  <p className="text-xs text-white/40">첫 콘텐츠 완료해보세요</p>
                 </div>
-                <div className="w-5 h-5 rounded-full border-2 border-white/20" />
+                <div className="w-5 h-5 rounded-full border-2 border-white/20 shrink-0" />
               </div>
             )}
 
             {/* 3개 완료 마일스톤 */}
             {(dashboard.stats?.totalContentsCompleted || 0) >= 3 ? (
               <div className="flex items-center gap-3 p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
-                <div className="w-10 h-10 rounded-full bg-blue-500/30 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-blue-500/30 flex items-center justify-center shrink-0">
                   <span className="text-lg">🔥</span>
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-white">시동 걸림</p>
-                  <p className="text-xs text-white/50">3개 콘텐츠 완료! 꾸준함이 보여요</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-white truncate">시동 걸림</p>
+                  <p className="text-xs text-white/50">3개 콘텐츠 완료!</p>
                 </div>
-                <svg className="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                <svg className="w-5 h-5 text-blue-400 shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
               </div>
             ) : (
               <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 opacity-50">
-                <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center shrink-0">
                   <span className="text-lg">🔥</span>
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-white/70">시동 걸림</p>
-                  <p className="text-xs text-white/40">{dashboard.stats?.totalContentsCompleted || 0}/3 콘텐츠 완료</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-white/70 truncate">시동 걸림</p>
+                  <p className="text-xs text-white/40">{dashboard.stats?.totalContentsCompleted || 0}/3 콘텐츠</p>
                 </div>
-                <div className="w-5 h-5 rounded-full border-2 border-white/20" />
+                <div className="w-5 h-5 rounded-full border-2 border-white/20 shrink-0" />
               </div>
             )}
 
             {/* 1주차 완료 마일스톤 */}
             {dashboard.currentCurriculum.progress >= 25 ? (
               <div className="flex items-center gap-3 p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
-                <div className="w-10 h-10 rounded-full bg-yellow-500/30 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-yellow-500/30 flex items-center justify-center shrink-0">
                   <span className="text-lg">⭐</span>
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-white">1주차 정복</p>
-                  <p className="text-xs text-white/50">체계적인 학습의 시작!</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-white truncate">1주차 정복</p>
+                  <p className="text-xs text-white/50">체계적인 학습!</p>
                 </div>
-                <svg className="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                <svg className="w-5 h-5 text-yellow-400 shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
               </div>
             ) : (
               <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 opacity-50">
-                <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center shrink-0">
                   <span className="text-lg">⭐</span>
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-white/70">1주차 정복</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-white/70 truncate">1주차 정복</p>
                   <p className="text-xs text-white/40">1주차를 완료해보세요</p>
                 </div>
-                <div className="w-5 h-5 rounded-full border-2 border-white/20" />
+                <div className="w-5 h-5 rounded-full border-2 border-white/20 shrink-0" />
               </div>
             )}
           </div>
@@ -748,6 +716,14 @@ export default function DashboardPage() {
               }
             </p>
           </div>
+
+          {/* 모든 배지 보기 링크 */}
+          <button
+            onClick={() => router.push('/badges')}
+            className="w-full mt-3 py-2 rounded-lg bg-white/5 text-white/60 hover:bg-white/10 hover:text-white/80 transition-colors text-sm font-medium"
+          >
+            모든 배지 보기 →
+          </button>
         </motion.div>
       )}
 
@@ -755,7 +731,7 @@ export default function DashboardPage() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.25 }}
+        transition={{ delay: 0.2 }}
         className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4"
       >
         <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-4 sm:p-5 flex sm:flex-col items-center sm:items-center justify-between sm:justify-center gap-2 sm:gap-0 sm:text-center">

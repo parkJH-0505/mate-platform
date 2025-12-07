@@ -179,6 +179,36 @@ export function TodaysPlanCard({ sessionId }: Props) {
         </AnimatePresence>
       </div>
 
+      {/* 오늘의 한 발 시작 버튼 - 미완료 시에만 표시 */}
+      {!isCompleted && plan.items.some(item => item.status === 'pending') && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative mt-4"
+        >
+          <button
+            onClick={() => {
+              const firstPending = plan.items.find(item => item.status === 'pending')
+              if (firstPending) {
+                // 첫 번째 미완료 아이템으로 이동
+                if (firstPending.type === 'content') {
+                  window.location.href = `/content/${firstPending.id}`
+                } else if (firstPending.type === 'action') {
+                  window.location.href = `/actions/${firstPending.id}`
+                }
+              }
+            }}
+            className="w-full py-3.5 rounded-xl bg-gradient-to-r from-accent-purple to-primary text-white font-semibold hover:shadow-[0_0_30px_rgba(147,97,253,0.3)] transition-all flex items-center justify-center gap-2"
+          >
+            <span className="text-lg">👟</span>
+            오늘의 한 발 시작하기
+          </button>
+          <p className="mt-2 text-center text-xs text-white/30">
+            작은 한 걸음이 큰 변화를 만들어요
+          </p>
+        </motion.div>
+      )}
+
       {/* 완료 메시지 */}
       <AnimatePresence>
         {isCompleted && (
