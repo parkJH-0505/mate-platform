@@ -52,8 +52,9 @@ export const SolutionStepCard: React.FC<SolutionStepCardProps> = ({
   return (
     <div className={`
       relative rounded-2xl overflow-hidden transition-all duration-300
-      ${isExpanded ? 'bg-white/[0.04]' : 'bg-white/[0.02] hover:bg-white/[0.03]'}
-      border border-white/[0.06]
+      ${isExpanded ? 'bg-white/[0.06] border-2 border-white/[0.15]' : 'bg-white/[0.04] hover:bg-white/[0.05] border border-white/[0.12]'}
+      backdrop-blur-sm
+      shadow-[0_4px_16px_0_rgba(0,0,0,0.2)]
     `}>
       {/* Header - Always Visible */}
       <button

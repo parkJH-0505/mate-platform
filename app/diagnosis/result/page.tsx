@@ -145,11 +145,7 @@ export default function DiagnosisResultPage() {
           </div>
 
           {/* Additional Resources */}
-          <div className="
-            p-6 rounded-2xl
-            bg-gradient-to-br from-white/[0.03] to-transparent
-            border border-white/[0.06]
-          ">
+          <div className="\n            p-6 rounded-2xl\n            bg-gradient-to-br from-white/[0.06] to-transparent\n            border-2 border-white/[0.15]\n            backdrop-blur-sm\n            shadow-[0_4px_16px_0_rgba(0,0,0,0.2)]\n          \">
             <div className="flex items-start gap-4">
               <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
                 <span className="text-2xl">🤖</span>

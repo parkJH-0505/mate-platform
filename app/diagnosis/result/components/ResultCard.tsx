@@ -47,9 +47,11 @@ export const ResultCard: React.FC<ResultCardProps> = ({
 
       <div className="
         relative p-8 rounded-3xl
-        bg-gradient-to-br from-white/[0.05] to-transparent
-        border border-white/[0.08]
-        backdrop-blur-sm
+        bg-gradient-to-br from-white/[0.08] to-transparent
+        border-2 border-white/[0.15]
+        backdrop-blur-md
+        shadow-[0_8px_32px_0_rgba(0,0,0,0.3)]
+        animate-shine-border
       ">
         {/* Category Badge */}
         <div className="flex items-center gap-3 mb-6">
