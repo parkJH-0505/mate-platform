@@ -2,7 +2,6 @@
 
 import React from 'react'
 import { motion } from 'framer-motion'
-import Link from 'next/link'
 
 interface Props {
   content: {
@@ -18,6 +17,7 @@ interface Props {
     save_count: number
   }
   index: number
+  onOpen?: (contentId: string) => void
 }
 
 const TYPE_ICONS: Record<string, string> = {
@@ -36,7 +36,7 @@ const LEVEL_BADGES: Record<number, { label: string; color: string }> = {
   5: { label: '전문가', color: 'bg-red-500/20 text-red-400 border-red-500/30' }
 }
 
-export function ContentCard({ content, index }: Props) {
+export function ContentCard({ content, index, onOpen }: Props) {
   const levelBadge = LEVEL_BADGES[content.level] || LEVEL_BADGES[2]
   const duration = content.duration_minutes || 5
 
@@ -47,16 +47,22 @@ export function ContentCard({ content, index }: Props) {
     return count.toString()
   }
 
+  const handleClick = () => {
+    if (onOpen) {
+      onOpen(content.id)
+    }
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: Math.min(index * 0.05, 0.3) }}
     >
-      <Link
-        href={`/content/${content.id}`}
+      <button
+        onClick={handleClick}
         className="
-          block rounded-xl overflow-hidden
+          w-full block rounded-xl overflow-hidden text-left
           bg-white/[0.05] border-2 border-white/[0.12]
           hover:border-white/[0.2] hover:bg-white/[0.08]
           transition-all group
@@ -126,7 +132,7 @@ export function ContentCard({ content, index }: Props) {
             </span>
           </div>
         </div>
-      </Link>
+      </button>
     </motion.div>
   )
 }
