@@ -178,11 +178,11 @@ export async function POST(request: Request) {
       )
     }
 
+    // 프로덕션에서도 에러 메시지 표시 (디버깅용)
     return NextResponse.json(
       {
-        error: 'Failed to generate curriculum',
-        code: 'UNKNOWN_ERROR',
-        details: process.env.NODE_ENV === 'development' ? error?.message : undefined
+        error: error?.message || 'Failed to generate curriculum',
+        code: 'UNKNOWN_ERROR'
       },
       { status: 500 }
     )

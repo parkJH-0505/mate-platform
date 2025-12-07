@@ -58,11 +58,14 @@ export default function GeneratingPage() {
           })
         })
 
-        if (!response.ok) {
-          throw new Error('커리큘럼 생성에 실패했습니다')
-        }
-
         const data = await response.json()
+
+        if (!response.ok) {
+          // 서버에서 반환된 상세 에러 메시지 표시
+          const errorMessage = data.error || '커리큘럼 생성에 실패했습니다'
+          const errorCode = data.code || 'UNKNOWN'
+          throw new Error(`[${errorCode}] ${errorMessage}`)
+        }
 
         if (data.success) {
           // 커리큘럼 페이지로 이동
